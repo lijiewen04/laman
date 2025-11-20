@@ -1,8 +1,13 @@
-const db = require("../database/duckdb");
-const fs = require("fs");
-const path = require("path");
-const csv = require("csv-parser");
-const xlsx = require("xlsx");
+import db from "../database/duckdb.js";
+import fs from "fs";
+import path from "path";
+import csv from "csv-parser";
+import xlsx from "xlsx";
+import { fileURLToPath } from "url";
+import userService from "./userService.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class FileService {
   constructor() {
@@ -30,10 +35,10 @@ class FileService {
       metadata = {},
     } = fileData;
 
-    const result = await db.run(
+    const inserted = await db.get(
       `INSERT INTO files (
         filename, original_name, mime_type, size, file_path, file_type, description, metadata, uploaded_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [
         filename,
         originalname,
@@ -47,7 +52,7 @@ class FileService {
       ]
     );
 
-    return await this.getFileById(this.getLastInsertRowid());
+    return await this.getFileById(inserted.id);
   }
 
   // 根据ID获取文件记录
@@ -227,11 +232,7 @@ class FileService {
     }
   }
 
-  // 获取最后插入的行ID
-  async getLastInsertRowid() {
-    const result = await db.get("SELECT last_insert_rowid() as id");
-    return result.id;
-  }
+  // 不再使用 last_insert_rowid(); 使用 INSERT ... RETURNING 获取插入 id
 
   // 检查用户是否有下载权限
   canUserDownload(userPermission) {
@@ -241,7 +242,6 @@ class FileService {
 
   // 为访客授权下载
   async authorizeDownload(fileId, username, expiresIn = 24) {
-    const userService = require("./userService");
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
@@ -282,4 +282,4 @@ class FileService {
   }
 }
 
-module.exports = new FileService();
+export default new FileService();

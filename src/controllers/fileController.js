@@ -1,10 +1,10 @@
-const fileService = require("../services/fileService");
-const { createResponse } = require("../middleware/auth");
-const fs = require("fs");
-const path = require("path");
+import fileService from "../services/fileService.js";
+import { createResponse } from "../middleware/auth.js";
+import fs from "fs";
+import path from "path";
 
 // 文件上传
-const uploadFile = async (req, res) => {
+export const uploadFile = async (req, res) => {
   try {
     if (!req.file) {
       return res.json(createResponse(4001, "请选择要上传的文件"));
@@ -66,7 +66,7 @@ const uploadFile = async (req, res) => {
 };
 
 // 文件下载
-const downloadFile = async (req, res) => {
+export const downloadFile = async (req, res) => {
   try {
     const { id } = req.body;
 
@@ -123,7 +123,7 @@ const downloadFile = async (req, res) => {
 };
 
 // 获取文件列表
-const getFileList = async (req, res) => {
+export const getFileList = async (req, res) => {
   try {
     const {
       page = 1,
@@ -164,7 +164,7 @@ const getFileList = async (req, res) => {
 };
 
 // 获取文件预览
-const getFilePreview = async (req, res) => {
+export const getFilePreview = async (req, res) => {
   try {
     const { id, limit = 10 } = req.body;
 
@@ -182,7 +182,7 @@ const getFilePreview = async (req, res) => {
 };
 
 // 删除文件
-const deleteFile = async (req, res) => {
+export const deleteFile = async (req, res) => {
   try {
     const { id } = req.body;
 
@@ -220,7 +220,7 @@ const deleteFile = async (req, res) => {
 };
 
 // 获取文件类型列表
-const getFileTypes = async (req, res) => {
+export const getFileTypes = async (req, res) => {
   try {
     const types = await fileService.getFileTypes();
     res.json(createResponse(0, "获取文件类型成功", types));
@@ -231,7 +231,7 @@ const getFileTypes = async (req, res) => {
 };
 
 // 授权访客下载
-const authorizeDownload = async (req, res) => {
+export const authorizeDownload = async (req, res) => {
   try {
     const { fileId, username, expiresIn = 24 } = req.body;
 
@@ -314,12 +314,4 @@ async function extractFileMetadata(file, fileType) {
   return metadata;
 }
 
-module.exports = {
-  uploadFile,
-  downloadFile,
-  getFileList,
-  getFilePreview,
-  deleteFile,
-  getFileTypes,
-  authorizeDownload,
-};
+// functions are exported inline above

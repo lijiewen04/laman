@@ -1,11 +1,14 @@
-const duckdb = require("duckdb");
-const path = require("path");
+import path from "path";
+import fs from "fs";
+import { DuckDBInstance } from "@duckdb/node-api";
+
+// 使用 @duckdb/node-api 创建实例并连接
 
 class Database {
-  constructor() {
-    this.dbPath = process.env.DATABASE_PATH || "./database/auth.db";
-    this.db = new duckdb.Database(this.dbPath);
-    this.connection = this.db.connect();
+  constructor(instance, connection, dbPath) {
+    this.instance = instance;
+    this.connection = connection;
+    this.dbPath = dbPath;
     this.init();
   }
 
@@ -78,10 +81,12 @@ class Database {
          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
 `);
-      //下载授权表
+      // 下载授权表（使用 sequence 而非 AUTOINCREMENT，兼容 DuckDB）
       await this.run(`
+        CREATE SEQUENCE IF NOT EXISTS file_download_authorizations_id_seq START 1;
+
         CREATE TABLE IF NOT EXISTS file_download_authorizations (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         id INTEGER PRIMARY KEY DEFAULT nextval('file_download_authorizations_id_seq'),
          file_id INTEGER REFERENCES files(id),
          user_id INTEGER REFERENCES users(id),
          expires_at TIMESTAMP NOT NULL,
@@ -91,9 +96,6 @@ class Database {
      `);
 
       // 创建索引
-      await this.run(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)"
-      );
       await this.run(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)"
       );
@@ -108,9 +110,6 @@ class Database {
       );
       await this.run(
         "CREATE INDEX IF NOT EXISTS idx_patients_isTested ON patients(isTested)"
-      );
-      await this.run(
-        "CREATE INDEX IF NOT EXISTS idx_files_category ON files(category)"
       );
       await this.run(
         "CREATE INDEX IF NOT EXISTS idx_files_file_type ON files(file_type)"
@@ -134,43 +133,46 @@ class Database {
     }
   }
 
-  run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.connection.run(sql, params, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
-      });
-    });
+  async run(sql, params = []) {
+    const result = await this.connection.run(sql, params);
+    // 尽可能提供与旧 API 兼容的 changes 字段
+    const changes = result?.rowCount ?? result?.changes ?? 0;
+    return { ...result, changes };
   }
 
-  all(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.connection.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+  async all(sql, params = []) {
+    const reader = await this.connection.runAndReadAll(sql, params);
+    // 返回行对象数组
+    return reader.getRowObjects ? reader.getRowObjects() : reader.getRows ? reader.getRows() : [];
   }
 
-  get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.connection.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows && rows.length > 0 ? rows[0] : null);
-        }
-      });
-    });
+  async get(sql, params = []) {
+    const rows = await this.all(sql, params);
+    return rows && rows.length > 0 ? rows[0] : null;
   }
 }
 
 // 创建单例实例
-const database = new Database();
-module.exports = database;
+// 使用 top-level await 创建实例并导出单例
+const dbPath = process.env.DATABASE_PATH || "./database/auth.db";
+const dbPathResolved = path.resolve(dbPath);
+const dbDir = path.dirname(dbPathResolved);
+// 确保目录存在（避免打开数据库文件时因目录不存在导致失败）
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+let database;
+try {
+  const instance = await DuckDBInstance.create(dbPathResolved);
+  const connection = await instance.connect();
+  database = new Database(instance, connection, dbPath);
+  console.log("DuckDB 实例已创建，路径:", dbPathResolved);
+} catch (err) {
+  console.error("初始化 DuckDB 时出错:", err);
+  console.error(
+    "请确保安装了 @duckdb/node-api 及对应的 node-bindings，运行 `pnpm install` 或 `pnpm rebuild @duckdb/node-bindings`。"
+  );
+  throw err;
+}
+
+export default database;

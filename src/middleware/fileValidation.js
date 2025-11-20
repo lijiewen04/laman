@@ -1,6 +1,6 @@
-const { createResponse } = require("./auth");
+import { createResponse } from "./auth.js";
 
-const validateFileUpload = (req, res, next) => {
+export const validateFileUpload = (req, res, next) => {
   if (!req.file) {
     return res.json(createResponse(4001, "请选择要上传的文件"));
   }
@@ -31,7 +31,7 @@ const validateFileUpload = (req, res, next) => {
   next();
 };
 
-const validateDownloadAuth = (req, res, next) => {
+export const validateDownloadAuth = (req, res, next) => {
   const { fileId, username, expiresIn } = req.body;
 
   if (!fileId || !username) {
@@ -45,7 +45,4 @@ const validateDownloadAuth = (req, res, next) => {
   next();
 };
 
-module.exports = {
-  validateFileUpload,
-  validateDownloadAuth,
-};
+// exports are already declared inline above

@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken");
-const userService = require("../services/userService");
+import jwt from "jsonwebtoken";
+import userService from "../services/userService.js";
 
 // 统一响应格式
-const createResponse = (status, msg, data = null) => {
+export const createResponse = (status, msg, data = null) => {
   return {
     status,
     msg,
@@ -11,7 +11,7 @@ const createResponse = (status, msg, data = null) => {
 };
 
 // 验证JWT令牌
-const protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   try {
     let token;
 
@@ -54,7 +54,7 @@ const protect = async (req, res, next) => {
 };
 
 // 授权中间件（检查权限）
-const authorize = (...permissions) => {
+export const authorize = (...permissions) => {
   return (req, res, next) => {
     if (!permissions.includes(req.user.user_permission)) {
       return res.json(
@@ -63,10 +63,4 @@ const authorize = (...permissions) => {
     }
     next();
   };
-};
-
-module.exports = {
-  protect,
-  authorize,
-  createResponse,
 };

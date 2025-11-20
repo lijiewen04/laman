@@ -1,6 +1,6 @@
-const { createResponse } = require("./auth");
+import { createResponse } from "./auth.js";
 
-const validatePatientCreate = (req, res, next) => {
+export const validatePatientCreate = (req, res, next) => {
   const { abbr, time, name, serialNo, inpatientOutpatient } = req.body;
 
   if (!abbr || !time || !name || !serialNo || !inpatientOutpatient) {
@@ -43,7 +43,7 @@ const validatePatientCreate = (req, res, next) => {
   next();
 };
 
-const validatePatientUpdate = (req, res, next) => {
+export const validatePatientUpdate = (req, res, next) => {
   const { id } = req.body;
 
   if (!id) {
@@ -97,7 +97,4 @@ const validatePatientUpdate = (req, res, next) => {
   next();
 };
 
-module.exports = {
-  validatePatientCreate,
-  validatePatientUpdate,
-};
+// exports are declared inline above

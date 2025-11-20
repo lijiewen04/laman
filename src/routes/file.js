@@ -1,7 +1,7 @@
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
-const {
+import express from "express";
+import multer from "multer";
+import path from "path";
+import {
   uploadFile,
   downloadFile,
   getFileList,
@@ -9,12 +9,13 @@ const {
   deleteFile,
   getFileTypes,
   authorizeDownload,
-} = require("../controllers/fileController");
-const { protect, authorize } = require("../middleware/auth");
-const {
-  validateFileUpload,
-  validateDownloadAuth,
-} = require("../middleware/fileValidation");
+} from "../controllers/fileController.js";
+import { protect, authorize } from "../middleware/auth.js";
+import { validateFileUpload, validateDownloadAuth } from "../middleware/fileValidation.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -78,4 +79,4 @@ router.post(
   authorizeDownload
 );
 
-module.exports = router;
+export default router;

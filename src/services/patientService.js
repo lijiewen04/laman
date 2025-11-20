@@ -1,4 +1,4 @@
-const db = require("../database/duckdb");
+import db from "../database/duckdb.js";
 
 class PatientService {
   // 创建病人
@@ -24,12 +24,12 @@ class PatientService {
       memo,
     } = patientData;
 
-    const result = await db.run(
+    const inserted = await db.get(
       `INSERT INTO patients (
         abbr, time, name, serialNo, inpatientOutpatient, "group",
         gender, age, caseNo, diagnosis, isTested, tStage, nStage,
         mStage, stage, preTreatment, treatmentType, memo, createdBy
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [
         abbr,
         time,
@@ -53,7 +53,7 @@ class PatientService {
       ]
     );
 
-    const patient = await this.getPatientById(this.getLastInsertRowid());
+    const patient = await this.getPatientById(inserted.id);
     return patient;
   }
 
@@ -216,11 +216,7 @@ class PatientService {
     return result.changes > 0;
   }
 
-  // 获取最后插入的行ID
-  async getLastInsertRowid() {
-    const result = await db.get("SELECT last_insert_rowid() as id");
-    return result.id;
-  }
+  // 不再使用 last_insert_rowid(); 使用 INSERT ... RETURNING 获取插入 id
 
   // 检查流水号是否存在
   async checkSerialNoExists(serialNo, excludeId = null) {
@@ -258,4 +254,4 @@ class PatientService {
   }
 }
 
-module.exports = new PatientService();
+export default new PatientService();

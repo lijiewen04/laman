@@ -1,6 +1,6 @@
-const { createResponse } = require("./auth");
+import { createResponse } from "./auth.js";
 
-const validateRegister = (req, res, next) => {
+export const validateRegister = (req, res, next) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -28,7 +28,7 @@ const validateRegister = (req, res, next) => {
   next();
 };
 
-const validateLogin = (req, res, next) => {
+export const validateLogin = (req, res, next) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -38,4 +38,4 @@ const validateLogin = (req, res, next) => {
   next();
 };
 
-module.exports = { validateRegister, validateLogin };
+// exports are declared inline above

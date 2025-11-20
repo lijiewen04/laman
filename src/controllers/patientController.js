@@ -1,8 +1,7 @@
-const patientService = require("../services/patientService");
-const { createResponse } = require("../middleware/auth");
+import patientService from "../services/patientService.js";
+import { createResponse } from "../middleware/auth.js";
 
-// 创建病人
-const createPatient = async (req, res) => {
+export const createPatient = async (req, res) => {
   try {
     const patientData = req.body;
     const createdBy = req.user.id;
@@ -24,8 +23,7 @@ const createPatient = async (req, res) => {
   }
 };
 
-// 获取病人列表
-const getPatientList = async (req, res) => {
+export const getPatientList = async (req, res) => {
   try {
     const {
       page = 1,
@@ -82,8 +80,7 @@ const getPatientList = async (req, res) => {
   }
 };
 
-// 获取单个病人详情
-const getPatientDetail = async (req, res) => {
+export const getPatientDetail = async (req, res) => {
   try {
     const { id } = req.body;
 
@@ -127,8 +124,7 @@ const getPatientDetail = async (req, res) => {
   }
 };
 
-// 更新病人信息
-const updatePatient = async (req, res) => {
+export const updatePatient = async (req, res) => {
   try {
     const { id, ...updateData } = req.body;
 
@@ -188,8 +184,7 @@ const updatePatient = async (req, res) => {
   }
 };
 
-// 删除病人
-const deletePatient = async (req, res) => {
+export const deletePatient = async (req, res) => {
   try {
     const { id } = req.body;
 
@@ -216,8 +211,7 @@ const deletePatient = async (req, res) => {
   }
 };
 
-// 获取分组列表
-const getGroups = async (req, res) => {
+export const getGroups = async (req, res) => {
   try {
     const groups = await patientService.getGroups();
     res.json(createResponse(0, "获取分组列表成功", groups));
@@ -227,8 +221,7 @@ const getGroups = async (req, res) => {
   }
 };
 
-// 获取统计数据
-const getStatistics = async (req, res) => {
+export const getStatistics = async (req, res) => {
   try {
     const stats = await patientService.getStatistics();
     res.json(createResponse(0, "获取统计数据成功", stats));
@@ -236,14 +229,4 @@ const getStatistics = async (req, res) => {
     console.error("获取统计数据错误:", error);
     res.json(createResponse(5001, "服务器错误"));
   }
-};
-
-module.exports = {
-  createPatient,
-  getPatientList,
-  getPatientDetail,
-  updatePatient,
-  deletePatient,
-  getGroups,
-  getStatistics,
 };

@@ -1,6 +1,6 @@
-const userService = require("../services/userService");
-const jwt = require("jsonwebtoken");
-const { createResponse } = require("../middleware/auth");
+import userService from "../services/userService.js";
+import jwt from "jsonwebtoken";
+import { createResponse } from "../middleware/auth.js";
 
 // 生成JWT令牌
 const generateToken = (id) => {
@@ -9,8 +9,7 @@ const generateToken = (id) => {
   });
 };
 
-// 用户注册
-const register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const {
       username,
@@ -54,8 +53,7 @@ const register = async (req, res) => {
   }
 };
 
-// 用户登录
-const login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -90,8 +88,7 @@ const login = async (req, res) => {
   }
 };
 
-// 获取当前用户信息
-const getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const userInfo = {
       username: req.user.username,
@@ -107,8 +104,7 @@ const getMe = async (req, res) => {
   }
 };
 
-// 获取用户列表（符合 UserListItem 类型）
-const getUserList = async (req, res) => {
+export const getUserList = async (req, res) => {
   try {
     const users = await userService.getAllUsers();
 
@@ -127,8 +123,7 @@ const getUserList = async (req, res) => {
   }
 };
 
-// 更新用户信息
-const updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const { username, userPermission, department, phone } = req.body;
     const userId = req.user.id;
@@ -162,8 +157,7 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// 更新用户权限（仅超级管理员）
-const updateUserPermission = async (req, res) => {
+export const updateUserPermission = async (req, res) => {
   try {
     const { username, userPermission } = req.body;
 
@@ -198,8 +192,7 @@ const updateUserPermission = async (req, res) => {
   }
 };
 
-// 删除用户（仅超级管理员）
-const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   try {
     const { username } = req.body;
 
@@ -228,14 +221,4 @@ const deleteUser = async (req, res) => {
     console.error("删除用户错误:", error);
     res.json(createResponse(5001, "服务器错误"));
   }
-};
-
-module.exports = {
-  register,
-  login,
-  getMe,
-  getUserList,
-  updateProfile,
-  updateUserPermission,
-  deleteUser,
 };

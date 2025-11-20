@@ -1,5 +1,5 @@
-const db = require("../database/duckdb");
-const bcrypt = require("bcryptjs");
+import db from "../database/duckdb.js";
+import bcrypt from "bcryptjs";
 
 class UserService {
   // 创建用户
@@ -15,14 +15,14 @@ class UserService {
     // 密码加密
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const result = await db.run(
-      `INSERT INTO users (username, password, user_permission, department, phone) 
-       VALUES (?, ?, ?, ?, ?)`,
+    // 使用 RETURNING 获取插入的 id（DuckDB 支持 RETURNING）
+    const inserted = await db.get(
+      `INSERT INTO users (username, password, user_permission, department, phone)
+       VALUES (?, ?, ?, ?, ?) RETURNING id`,
       [username, hashedPassword, userPermission, department, phone]
     );
 
-    // 获取新创建的用户
-    const user = await this.getUserById(this.getLastInsertRowid());
+    const user = await this.getUserById(inserted.id);
     return user;
   }
 
@@ -86,11 +86,7 @@ class UserService {
     return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  // 获取最后插入的行ID
-  async getLastInsertRowid() {
-    const result = await db.get("SELECT last_insert_rowid() as id");
-    return result.id;
-  }
+  // 注意：不再使用 last_insert_rowid()，INSERT ... RETURNING 在需要时返回 id
 
   // 删除用户（软删除）
   async deleteUser(id) {
@@ -102,4 +98,4 @@ class UserService {
   }
 }
 
-module.exports = new UserService();
+export default new UserService();

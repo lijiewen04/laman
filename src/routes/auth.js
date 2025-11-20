@@ -1,5 +1,5 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   register,
   login,
   getMe,
@@ -7,9 +7,9 @@ const {
   updateProfile,
   updateUserPermission,
   deleteUser,
-} = require("../controllers/authController");
-const { protect, authorize } = require("../middleware/auth");
-const { validateRegister, validateLogin } = require("../middleware/validation");
+} from "../controllers/authController.js";
+import { protect, authorize } from "../middleware/auth.js";
+import { validateRegister, validateLogin } from "../middleware/validation.js";
 
 const router = express.Router();
 
@@ -32,4 +32,4 @@ router.post(
 );
 router.post("/delete", protect, authorize("超级管理员"), deleteUser);
 
-module.exports = router;
+export default router;

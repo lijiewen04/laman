@@ -1,5 +1,5 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   createPatient,
   getPatientList,
   getPatientDetail,
@@ -7,12 +7,9 @@ const {
   deletePatient,
   getGroups,
   getStatistics,
-} = require("../controllers/patientController");
-const { protect, authorize } = require("../middleware/auth");
-const {
-  validatePatientCreate,
-  validatePatientUpdate,
-} = require("../middleware/patientValidation");
+} from "../controllers/patientController.js";
+import { protect, authorize } from "../middleware/auth.js";
+import { validatePatientCreate, validatePatientUpdate } from "../middleware/patientValidation.js";
 
 const router = express.Router();
 
@@ -50,4 +47,4 @@ router.post("/groups", getGroups);
 // 获取统计数据（所有登录用户都可访问）
 router.post("/statistics", getStatistics);
 
-module.exports = router;
+export default router;

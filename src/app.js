@@ -1,16 +1,16 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const fileRoutes = require("./routes/file");
-require("dotenv").config();
-
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import dotenv from "dotenv";
+import fileRoutes from "./routes/file.js";
 // 导入数据库连接（会自动初始化）
-require("./database/duckdb");
+import "./database/duckdb.js";
+import authRoutes from "./routes/auth.js";
+import patientRoutes from "./routes/patient.js";
+import { createResponse } from "./middleware/auth.js";
 
-const authRoutes = require("./routes/auth");
-const patientRoutes = require("./routes/patient");
-const { createResponse } = require("./middleware/auth");
+dotenv.config();
 
 const app = express();
 
