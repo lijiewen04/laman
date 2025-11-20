@@ -1,0 +1,7 @@
+POST http://localhost:3000/api/patient/detail
+Content-Type: application/json
+Authorization: Bearer <your_jwt_token>
+
+{
+  "id": 1
+}
