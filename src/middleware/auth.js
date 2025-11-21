@@ -56,7 +56,7 @@ export const protect = async (req, res, next) => {
 // 授权中间件（检查权限）
 export const authorize = (...permissions) => {
   return (req, res, next) => {
-    if (!permissions.includes(req.user.user_permission)) {
+    if (!permissions.includes(req.user.userPermission)) {
       return res.json(
         createResponse(1005, `权限不足，需要 ${permissions.join("或")} 权限`)
       );
