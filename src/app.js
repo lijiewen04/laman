@@ -9,6 +9,9 @@ import "./database/duckdb.js";
 import authRoutes from "./routes/auth.js";
 import patientRoutes from "./routes/patient.js";
 import { createResponse } from "./middleware/auth.js";
+import swaggerUi from "swagger-ui-express";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -25,6 +28,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/patient", patientRoutes);
 app.use("/api/file", fileRoutes);
+// 挂载 Swagger UI（如果存在 swagger.json）
+try {
+  const swaggerPath = path.resolve("./src/swagger.json");
+  if (fs.existsSync(swaggerPath)) {
+    const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, "utf8"));
+    app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  }
+} catch (e) {
+  console.warn("无法加载 Swagger 文档:", e.message);
+}
 // 健康检查路由（也使用POST）
 app.post("/health", (req, res) => {
   res.json(
