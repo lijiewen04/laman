@@ -12,20 +12,16 @@ export const validateFileUpload = (req, res, next) => {
   }
 
   // 检查文件类型（可选）
-  const allowedMimeTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/plain",
-  ];
+  // 仅允许 CSV 文件上传：校验 MIME 类型 和 文件扩展名
+  const allowedMimeTypes = ["text/csv", "application/csv", "application/vnd.ms-excel"];
+  const originalName = req.file.originalname || "";
+  const ext = originalName.slice(originalName.lastIndexOf('.')).toLowerCase();
 
-  if (!allowedMimeTypes.includes(req.file.mimetype)) {
-    return res.json(createResponse(4010, "不支持的文件类型"));
+  const isMimeOk = allowedMimeTypes.includes(req.file.mimetype);
+  const isExtOk = ext === ".csv";
+
+  if (!(isMimeOk && isExtOk)) {
+    return res.json(createResponse(4010, "仅支持 CSV 文件上传"));
   }
 
   next();

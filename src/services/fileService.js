@@ -55,9 +55,26 @@ class FileService {
     return await this.getFileById(inserted.id);
   }
 
+  // 把行对象中的 BigInt 转为 Number（递归一层）
+  normalizeRow(row) {
+    if (!row || typeof row !== "object") return row;
+    const out = Array.isArray(row) ? [] : {};
+    for (const key of Object.keys(row)) {
+      const v = row[key];
+      if (typeof v === "bigint") {
+        out[key] = Number(v);
+      } else if (v && typeof v === "object" && !Array.isArray(v)) {
+        out[key] = this.normalizeRow(v);
+      } else {
+        out[key] = v;
+      }
+    }
+    return out;
+  }
+
   // 根据ID获取文件记录
   async getFileById(id) {
-    return await db.get(
+    const row = await db.get(
       `SELECT 
         f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
         f.size, f.file_path as filePath, f.file_type as fileType, f.description, 
@@ -69,6 +86,17 @@ class FileService {
        WHERE f.id = ? AND f.is_deleted = false`,
       [id]
     );
+
+    if (!row) return null;
+    const normalized = this.normalizeRow(row);
+    if (normalized.metadata) {
+      try {
+        normalized.metadata = JSON.parse(normalized.metadata);
+      } catch (e) {
+        // keep as string if parse fails
+      }
+    }
+    return normalized;
   }
 
   // 获取文件列表
@@ -109,7 +137,7 @@ class FileService {
     );
 
     // 获取数据
-    const files = await db.all(
+    let files = await db.all(
       `SELECT 
         f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
         f.size, f.file_type as fileType, f.description, f.metadata,
@@ -122,20 +150,27 @@ class FileService {
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
-
-    // 解析 metadata JSON
-    files.forEach((file) => {
-      if (file.metadata) {
-        file.metadata = JSON.parse(file.metadata);
+    // 规范化 BigInt，并解析 metadata JSON
+    files = files.map((file) => {
+      const normalized = this.normalizeRow(file);
+      if (normalized.metadata) {
+        try {
+          normalized.metadata = JSON.parse(normalized.metadata);
+        } catch (e) {
+          // keep as string
+        }
       }
+      return normalized;
     });
+
+    const totalNum = Number(countResult && countResult.total ? countResult.total : 0);
 
     return {
       files,
-      total: countResult.total,
+      total: totalNum,
       page,
       limit,
-      totalPages: Math.ceil(countResult.total / limit),
+      totalPages: Math.ceil(totalNum / limit),
     };
   }
 
@@ -176,6 +211,64 @@ class FileService {
     });
   }
 
+  // 将 CSV 导入到 DuckDB，tableName 会被安全化为只包含字母数字下划线
+  async importCSVToDuckDB(filePath, tableName) {
+    try {
+      if (!filePath || !tableName) {
+        throw new Error("需要提供 filePath 和 tableName");
+      }
+
+      // 安全化表名
+      const safeName = String(tableName).replace(/[^a-zA-Z0-9_]/g, "_");
+
+      // 先删除已存在的同名表（谨慎操作）
+      await db.run(`DROP TABLE IF EXISTS ${safeName}`);
+
+      // 使用 DuckDB 的 read_csv_auto 自动推断结构并创建表
+      // 使用参数绑定来传入文件路径以避免注入风险
+      const sql = `CREATE TABLE ${safeName} AS SELECT * FROM read_csv_auto(?)`;
+      await db.run(sql, [filePath]);
+
+      return { tableName: safeName };
+    } catch (error) {
+      console.error("将 CSV 导入 DuckDB 失败:", error);
+      throw error;
+    }
+  }
+
+  // 更新文件记录的 metadata（合并已有 metadata）
+  async updateFileMetadata(fileId, newMetadata = {}) {
+    const file = await this.getFileById(fileId);
+    if (!file) {
+      throw new Error("文件不存在");
+    }
+
+    let existing = {};
+    if (file.metadata && typeof file.metadata === "object") {
+      existing = file.metadata;
+    } else if (file.metadata && typeof file.metadata === "string") {
+      try {
+        existing = JSON.parse(file.metadata);
+      } catch (e) {
+        existing = {};
+      }
+    }
+
+    const merged = { ...existing, ...newMetadata };
+
+    await db.run(
+      `UPDATE files SET metadata = ? WHERE id = ?`,
+      [JSON.stringify(merged), fileId]
+    );
+
+    return merged;
+  }
+
+  // 把标识符（表名）安全化，仅保留字母数字和下划线
+  safeIdentifier(name) {
+    return String(name).replace(/[^a-zA-Z0-9_]/g, "_");
+  }
+
   // 解析 Excel 文件
   async parseExcel(filePath) {
     try {
@@ -199,17 +292,34 @@ class FileService {
     if (!fileRecord) {
       throw new Error("文件不存在");
     }
-
     const filePath = fileRecord.filePath;
     const fileType = fileRecord.fileType;
 
     try {
       if (fileType === "CSV") {
+        // 优先从 DuckDB 读取，如果 metadata 中存在 tableName
+        const metadata = fileRecord.metadata || {};
+        if (metadata.tableName) {
+          const safeName = this.safeIdentifier(metadata.tableName);
+          const rows = await db.all(`SELECT * FROM ${safeName} LIMIT ?`, [limit]);
+          const countRow = await db.get(`SELECT COUNT(*) as total FROM ${safeName}`);
+          const totalRows = countRow && countRow.total ? Number(countRow.total) : 0;
+          const normalized = rows.map((r) => this.normalizeRow(r));
+          return {
+            preview: normalized,
+            totalRows,
+            fileType: "CSV",
+            source: "duckdb",
+          };
+        }
+
+        // 回退到读取文件系统中的 CSV
         const allData = await this.parseCSV(filePath);
         return {
           preview: allData.slice(0, limit),
           totalRows: allData.length,
           fileType: "CSV",
+          source: "filesystem",
         };
       } else if (fileType === "Excel") {
         const allData = await this.parseExcel(filePath);

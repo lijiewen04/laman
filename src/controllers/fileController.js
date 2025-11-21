@@ -2,6 +2,7 @@ import fileService from "../services/fileService.js";
 import { createResponse } from "../middleware/auth.js";
 import fs from "fs";
 import path from "path";
+import db from "../database/duckdb.js";
 
 // 文件上传
 export const uploadFile = async (req, res) => {
@@ -33,6 +34,32 @@ export const uploadFile = async (req, res) => {
       uploadedBy
     );
 
+    // 如果是 CSV 文件，尝试把 CSV 导入 DuckDB，表名使用 file_<id>
+    let importedTable = null;
+    try {
+      if (finalFileType === "CSV") {
+        const tableName = `csv_file_${fileRecord.id}`;
+        const importResult = await fileService.importCSVToDuckDB(
+          fileRecord.filePath,
+          tableName
+        );
+        importedTable = importResult.tableName || tableName;
+      }
+    } catch (importErr) {
+      console.error("导入 CSV 到 DuckDB 失败:", importErr);
+      // 不阻塞文件上传；记录失败信息到 metadata 中
+      metadata.importError = importErr.message || String(importErr);
+    }
+
+    // 如果导入成功并有表名，持久化到文件 metadata 中
+    try {
+      if (importedTable) {
+        await fileService.updateFileMetadata(fileRecord.id, { tableName: importedTable });
+      }
+    } catch (metaErr) {
+      console.error("更新文件 metadata 失败:", metaErr);
+    }
+
     // 返回文件信息
     const fileInfo = {
       id: fileRecord.id,
@@ -46,6 +73,7 @@ export const uploadFile = async (req, res) => {
       downloadCount: fileRecord.downloadCount,
       createdAt: fileRecord.createdAt,
       uploadedBy: fileRecord.uploadedByUsername,
+      importedTable,
     };
 
     res.json(createResponse(0, "文件上传成功", fileInfo));
@@ -80,12 +108,7 @@ export const downloadFile = async (req, res) => {
       return res.json(createResponse(4002, "文件不存在"));
     }
 
-    // 检查文件是否存在
-    if (!fs.existsSync(fileRecord.filePath)) {
-      return res.json(createResponse(4003, "文件不存在或已被删除"));
-    }
-
-    // 检查下载权限
+    // 权限检查（先判断权限，若无权限直接返回）
     let hasPermission = fileService.canUserDownload(req.user.userPermission);
 
     // 如果是访客，检查是否有下载授权
@@ -94,6 +117,57 @@ export const downloadFile = async (req, res) => {
         id,
         req.user.id
       );
+    }
+
+    if (!hasPermission) {
+      return res.json(
+        createResponse(4004, "没有下载权限，请联系超级管理员授权")
+      );
+    }
+
+    // 对于 CSV，如果已经导入到 DuckDB，则从数据库导出 CSV
+    if (fileRecord.fileType === "CSV" && fileRecord.metadata && fileRecord.metadata.tableName) {
+      try {
+        const safeName = fileService.safeIdentifier(fileRecord.metadata.tableName);
+        const tableRows = await db.all(`SELECT * FROM ${safeName}`);
+
+        // 将行对象数组转换为 CSV 文本（简单实现，注意大文件内存占用）
+        const toCsv = (rows) => {
+          if (!rows || rows.length === 0) return "";
+          const keys = Object.keys(rows[0]);
+          const escape = (v) => {
+            if (v === null || v === undefined) return "";
+            const s = String(v);
+            if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+              return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+          };
+          const header = keys.join(",");
+          const lines = rows.map(r => keys.map(k => escape(typeof r[k] === 'bigint' ? Number(r[k]) : r[k])).join(","));
+          return [header, ...lines].join("\n");
+        };
+
+        const csvContent = toCsv(tableRows.map(r => fileService.normalizeRow(r)));
+
+        // 增加下载次数
+        await fileService.incrementDownloadCount(id);
+
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${encodeURIComponent(fileRecord.originalName)}"`
+        );
+        res.setHeader("Content-Length", Buffer.byteLength(csvContent));
+        return res.send(csvContent);
+      } catch (err) {
+        console.error("从 DuckDB 导出 CSV 失败:", err);
+        // 回退到文件系统方式
+      }
+    }
+
+    if (!fs.existsSync(fileRecord.filePath)) {
+      return res.json(createResponse(4003, "文件不存在或已被删除"));
     }
 
     if (!hasPermission) {
