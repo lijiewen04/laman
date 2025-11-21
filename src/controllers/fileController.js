@@ -111,12 +111,26 @@ export const downloadFile = async (req, res) => {
     // 权限检查（先判断权限，若无权限直接返回）
     let hasPermission = fileService.canUserDownload(req.user.userPermission);
 
-    // 如果是访客，检查是否有下载授权
+    // 如果是访客，检查是否有下载授权；返回结构化结果以区分过期与未授权
     if (!hasPermission && req.user.userPermission === "访客") {
-      hasPermission = await fileService.checkDownloadAuthorization(
+      const authResult = await fileService.checkDownloadAuthorization(
         id,
         req.user.id
       );
+
+      // 兼容旧版返回（布尔）和新版对象返回
+      if (typeof authResult === "object") {
+        if (authResult.authorized) {
+          hasPermission = true;
+        } else {
+          const msg = authResult.reason === "授权已过期" ?
+            "下载授权已过期，请联系超级管理员重新授权" :
+            "没有下载权限，请联系超级管理员授权";
+          return res.json(createResponse(4004, msg));
+        }
+      } else {
+        hasPermission = Boolean(authResult);
+      }
     }
 
     if (!hasPermission) {

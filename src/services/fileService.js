@@ -358,37 +358,91 @@ class FileService {
       throw new Error("用户不存在");
     }
 
-    if (user.userPermission !== "访客") {
+    if (user.user_permission !== "访客") {
       throw new Error("只能为访客用户授权下载");
     }
 
-    // 计算过期时间
+    // 计算过期时间（Date 对象，用于返回给客户端的 ISO 字符串）
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + parseInt(expiresIn));
 
-    const result = await db.run(
-      `INSERT INTO file_download_authorizations (file_id, user_id, expires_at)
-       VALUES (?, ?, ?)`,
-      [fileId, user.id, expiresAt]
-    );
+    // DuckDB 在 CAST ISO 带 'Z' 的字符串到 TIMESTAMP 时可能会忽略时区，
+    // 导致比较 CURRENT_TIMESTAMP 失败（表现为短期授权立即过期）。
+    // 为了兼容，存储到数据库的 expires_at 使用本地时间的不带时区格式：
+    // "YYYY-MM-DD HH:MM:SS"，以便 CAST(expires_at AS TIMESTAMP) 与 CURRENT_TIMESTAMP 正常比较。
+    const pad = (n) => String(n).padStart(2, "0");
+    const localY = expiresAt.getFullYear();
+    const localM = pad(expiresAt.getMonth() + 1);
+    const localD = pad(expiresAt.getDate());
+    const localH = pad(expiresAt.getHours());
+    const localMin = pad(expiresAt.getMinutes());
+    const localS = pad(expiresAt.getSeconds());
+    const expiresAtLocalString = `${localY}-${localM}-${localD} ${localH}:${localMin}:${localS}`;
 
-    return {
-      success: result.changes > 0,
-      username: user.username,
-      fileId: fileId,
-      expiresAt: expiresAt.toISOString(),
-    };
+    try {
+      const result = await db.run(
+        `INSERT INTO file_download_authorizations (file_id, user_id, expires_at)
+         VALUES (?, ?, ?)`,
+        [fileId, user.id, expiresAtLocalString]
+      );
+
+      return {
+        success: result.changes > 0,
+        username: user.username,
+        fileId: fileId,
+        expiresAt: expiresAt.toISOString(),
+      };
+    } catch (err) {
+      // 如果是唯一约束冲突（已存在授权），则更新过期时间而不是抛错
+      const msg = String(err && err.message ? err.message : err);
+      if (/unique|duplicate|违反|UNIQUE|Duplicate/i.test(msg)) {
+        const updateRes = await db.run(
+          `UPDATE file_download_authorizations SET expires_at = ? WHERE file_id = ? AND user_id = ?`,
+          [expiresAtLocalString, fileId, user.id]
+        );
+
+        return {
+          success: updateRes.changes > 0,
+          username: user.username,
+          fileId: fileId,
+          expiresAt: expiresAt.toISOString(),
+          note: updateRes.changes > 0 ? "授权已存在，已更新过期时间" : "授权已存在但未更新",
+        };
+      }
+
+      // 其他错误继续抛出，以便上层记录
+      throw err;
+    }
   }
 
   // 检查访客下载授权
   async checkDownloadAuthorization(fileId, userId) {
-    const authorization = await db.get(
-      `SELECT id FROM file_download_authorizations 
-       WHERE file_id = ? AND user_id = ? AND expires_at > CURRENT_TIMESTAMP`,
-      [fileId, userId]
-    );
+    try {
+      // 查询授权并判断是否仍然有效（is_valid 字段为布尔或 0/1）
+      const authorization = await db.get(
+        `SELECT id, expires_at, CAST(expires_at AS TIMESTAMP) > CURRENT_TIMESTAMP as is_valid
+         FROM file_download_authorizations 
+         WHERE file_id = ? AND user_id = ?`,
+        [fileId, userId]
+      );
 
-    return authorization !== null;
+      // 未找到任何授权记录
+      if (!authorization) {
+        return { authorized: false, reason: "未授权" };
+      }
+
+      // 根据数据库返回的 is_valid 值判断是否仍然有效
+      if (authorization.is_valid === true || authorization.is_valid === 1) {
+        return { authorized: true };
+      }
+
+      // 找到了授权记录但已过期
+      return { authorized: false, reason: "授权已过期" };
+    } catch (err) {
+      console.error("检查下载授权时出错:", err);
+      // 出错时返回结构化结果，便于上层区分原因并展示友好提示
+      return { authorized: false, reason: "检查授权失败" };
+    }
   }
 }
 

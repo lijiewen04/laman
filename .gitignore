@@ -4,3 +4,4 @@ node_modules/
 .DS_Store
 database/*.db
 database/*.db.wal
+.idea/*
