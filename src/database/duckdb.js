@@ -142,8 +142,21 @@ class Database {
 
   async all(sql, params = []) {
     const reader = await this.connection.runAndReadAll(sql, params);
-    // 返回行对象数组
-    return reader.getRowObjects ? reader.getRowObjects() : reader.getRows ? reader.getRows() : [];
+    // 返回行对象数组，并把 BigInt 转为 Number（避免 JSON 序列化时报错）
+    const rows = reader.getRowObjects ? reader.getRowObjects() : reader.getRows ? reader.getRows() : [];
+    // 将可能的 BigInt 字段转换为 Number（浅层转换）
+    return rows.map((row) => {
+      const out = {};
+      for (const key of Object.keys(row)) {
+        const v = row[key];
+        if (typeof v === "bigint") {
+          out[key] = Number(v);
+        } else {
+          out[key] = v;
+        }
+      }
+      return out;
+    });
   }
 
   async get(sql, params = []) {

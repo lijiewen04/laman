@@ -36,8 +36,13 @@ export const validatePatientCreate = (req, res, next) => {
     return res.json(createResponse(4007, '性别必须为"男"或"女"'));
   }
 
-  if (req.body.preTreatment && !["是", "否"].includes(req.body.preTreatment)) {
-    return res.json(createResponse(4008, '采样前是否接受治疗必须为"是"或"否"'));
+  if (
+    req.body.preTreatment !== undefined &&
+    typeof req.body.preTreatment !== "boolean"
+  ) {
+    return res.json(
+      createResponse(4008, "采样前是否接受治疗必须为布尔值 (true 或 false)")
+    );
   }
 
   next();
@@ -90,8 +95,13 @@ export const validatePatientUpdate = (req, res, next) => {
     return res.json(createResponse(4007, '性别必须为"男"或"女"'));
   }
 
-  if (req.body.preTreatment && !["是", "否"].includes(req.body.preTreatment)) {
-    return res.json(createResponse(4008, '采样前是否接受治疗必须为"是"或"否"'));
+  if (
+    req.body.preTreatment !== undefined &&
+    typeof req.body.preTreatment !== "boolean"
+  ) {
+    return res.json(
+      createResponse(4008, "采样前是否接受治疗必须为布尔值 (true 或 false)")
+    );
   }
 
   next();

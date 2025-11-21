@@ -50,7 +50,7 @@ class PatientService {
         treatmentType,
         memo,
         createdBy,
-      ]
+      ].map((v) => (v === undefined ? null : v))
     );
 
     const patient = await this.getPatientById(inserted.id);
@@ -127,11 +127,13 @@ class PatientService {
     // 计算分页
     const offset = (page - 1) * limit;
 
-    // 获取总数
+    // 获取总数（DuckDB 可能返回 BigInt）
     const countResult = await db.get(
       `SELECT COUNT(*) as total FROM patients ${whereClause}`,
       params
     );
+    // 将可能的 BigInt 转为 Number，以免与普通 Number 混合运算时报错
+    const total = typeof countResult.total === "bigint" ? Number(countResult.total) : countResult.total;
 
     // 获取数据
     const patients = await db.all(
@@ -148,10 +150,10 @@ class PatientService {
 
     return {
       patients,
-      total: countResult.total,
+      total,
       page,
       limit,
-      totalPages: Math.ceil(countResult.total / limit),
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -204,7 +206,7 @@ class PatientService {
         treatmentType,
         memo,
         id,
-      ]
+      ].map((v) => (v === undefined ? null : v))
     );
 
     return await this.getPatientById(id);
