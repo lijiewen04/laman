@@ -125,43 +125,68 @@ export const downloadFile = async (req, res) => {
       );
     }
 
-    // 对于 CSV，如果已经导入到 DuckDB，则从数据库导出 CSV
+    // 对于 CSV，如果已经导入到 DuckDB，则使用分页查询并流式写入响应（避免一次性读入内存）
     if (fileRecord.fileType === "CSV" && fileRecord.metadata && fileRecord.metadata.tableName) {
       try {
         const safeName = fileService.safeIdentifier(fileRecord.metadata.tableName);
-        const tableRows = await db.all(`SELECT * FROM ${safeName}`);
 
-        // 将行对象数组转换为 CSV 文本（简单实现，注意大文件内存占用）
-        const toCsv = (rows) => {
-          if (!rows || rows.length === 0) return "";
-          const keys = Object.keys(rows[0]);
-          const escape = (v) => {
-            if (v === null || v === undefined) return "";
-            const s = String(v);
-            if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
-              return '"' + s.replace(/"/g, '""') + '"';
-            }
-            return s;
-          };
-          const header = keys.join(",");
-          const lines = rows.map(r => keys.map(k => escape(typeof r[k] === 'bigint' ? Number(r[k]) : r[k])).join(","));
-          return [header, ...lines].join("\n");
-        };
-
-        const csvContent = toCsv(tableRows.map(r => fileService.normalizeRow(r)));
-
-        // 增加下载次数
-        await fileService.incrementDownloadCount(id);
-
-        res.setHeader("Content-Type", "text/csv");
+        // 设置下载头（不设置 Content-Length，使用分块传输）
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
         res.setHeader(
           "Content-Disposition",
           `attachment; filename="${encodeURIComponent(fileRecord.originalName)}"`
         );
-        res.setHeader("Content-Length", Buffer.byteLength(csvContent));
-        return res.send(csvContent);
+
+        const batchSize = 1000; // 每次读取的行数，可根据内存/性能调整
+        let offset = 0;
+        let writtenHeader = false;
+
+        // 分页循环读取并写入
+        while (true) {
+          const rows = await db.all(
+            `SELECT * FROM ${safeName} LIMIT ? OFFSET ?`,
+            [batchSize, offset]
+          );
+
+          if (!rows || rows.length === 0) break;
+
+          // 规范化 BigInt 并构建 CSV 行
+          const normalized = rows.map((r) => fileService.normalizeRow(r));
+
+          if (!writtenHeader) {
+            const header = Object.keys(normalized[0]).join(",") + "\n";
+            res.write(header);
+            writtenHeader = true;
+          }
+
+          for (const row of normalized) {
+            const keys = Object.keys(row);
+            const line = keys
+              .map((k) => {
+                const v = row[k];
+                if (v === null || v === undefined) return "";
+                const s = String(v);
+                if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+                  return '"' + s.replace(/"/g, '""') + '"';
+                }
+                return s;
+              })
+              .join(",") + "\n";
+            // 如果写入返回 false，等待 'drain' 事件以防内存积压
+            if (!res.write(line)) {
+              await new Promise((resolve) => res.once("drain", resolve));
+            }
+          }
+
+          offset += rows.length;
+        }
+
+        // 增加下载次数
+        await fileService.incrementDownloadCount(id);
+
+        return res.end();
       } catch (err) {
-        console.error("从 DuckDB 导出 CSV 失败:", err);
+        console.error("从 DuckDB 流式导出 CSV 失败:", err);
         // 回退到文件系统方式
       }
     }
