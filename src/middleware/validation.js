@@ -16,14 +16,7 @@ export const validateRegister = (req, res, next) => {
   }
 
   // 验证权限类型
-  if (
-    req.body.userPermission &&
-    !["超级管理员", "管理员", "用户", "访客"].includes(req.body.userPermission)
-  ) {
-    return res.json(
-      createResponse(2005, "权限类型无效，必须是：超级管理员、管理员、用户或访客")
-    );
-  }
+  // 注册时不允许提交 userPermission（默认设为 访客），因此此处不校验注册请求中的 userPermission
 
   next();
 };

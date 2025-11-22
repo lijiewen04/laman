@@ -55,7 +55,7 @@ class Database {
          preTreatment VARCHAR(100),
          treatmentType VARCHAR(100),
          memo TEXT,
-         createdBy INTEGER REFERENCES users(id),
+         createdBy INTEGER,
          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
        )
@@ -74,7 +74,7 @@ class Database {
          file_type VARCHAR(50) DEFAULT '其他',
          description TEXT,
          metadata TEXT, -- 存储JSON格式的元数据
-         uploaded_by INTEGER REFERENCES users(id),
+         uploaded_by INTEGER,
          download_count INTEGER DEFAULT 0,
          is_deleted BOOLEAN DEFAULT false,
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -87,8 +87,8 @@ class Database {
 
         CREATE TABLE IF NOT EXISTS file_download_authorizations (
          id INTEGER PRIMARY KEY DEFAULT nextval('file_download_authorizations_id_seq'),
-         file_id INTEGER REFERENCES files(id),
-         user_id INTEGER REFERENCES users(id),
+         file_id INTEGER,
+         user_id INTEGER,
          expires_at TIMESTAMP NOT NULL,
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
          UNIQUE(file_id, user_id)

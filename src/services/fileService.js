@@ -364,15 +364,21 @@ class FileService {
     return ["超级管理员", "管理员", "用户"].includes(userPermission);
   }
 
-  // 为访客授权下载
-  async authorizeDownload(fileId, username, expiresIn = 24) {
-    const user = await userService.getUserByUsername(username);
+  // 为访客授权下载：仅接受 userId（数字）作为目标用户标识
+  async authorizeDownload(fileId, userId, expiresIn = 24) {
+    if (userId === undefined || userId === null || isNaN(Number(userId))) {
+      throw new Error("需要提供有效的 userId");
+    }
+
+    const id = Number(userId);
+    const user = await userService.getUserById(id);
 
     if (!user) {
       throw new Error("用户不存在");
     }
 
-    if (user.user_permission !== "访客") {
+    const perm = user.user_permission !== undefined ? user.user_permission : user.userPermission;
+    if (perm !== "访客") {
       throw new Error("只能为访客用户授权下载");
     }
 

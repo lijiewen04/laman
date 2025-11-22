@@ -52,7 +52,7 @@ class UserService {
   // 获取所有用户列表（符合 UserListItem 类型）
   async getAllUsers() {
     return await db.all(
-      `SELECT username, user_permission as userPermission, department, phone 
+      `SELECT id, username, user_permission as userPermission, department, phone 
        FROM users WHERE is_active = true 
        ORDER BY created_at DESC`
     );
@@ -87,7 +87,7 @@ class UserService {
     const total = typeof countResult.total === "bigint" ? Number(countResult.total) : countResult.total;
 
     const users = await db.all(
-      `SELECT username, user_permission as userPermission, department, phone
+      `SELECT id, username, user_permission as userPermission, department, phone
        FROM users
        ${whereClause}
        ORDER BY created_at DESC
@@ -108,11 +108,47 @@ class UserService {
   async updateUser(id, updateData) {
     const { username, userPermission, department, phone } = updateData;
 
-    await db.run(
-      `UPDATE users SET username = ?, user_permission = ?, department = ?, phone = ?, 
-       updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [username, userPermission, department, phone, id]
-    );
+    // 仅更新传入的字段，避免把未传入的字段错误地设为 NULL 或触发约束
+    const sets = [];
+    const params = [];
+
+    if (username !== undefined) {
+      sets.push("username = ?");
+      params.push(username);
+    }
+    if (userPermission !== undefined) {
+      sets.push("user_permission = ?");
+      params.push(userPermission);
+    }
+    if (department !== undefined) {
+      sets.push("department = ?");
+      params.push(department);
+    }
+    if (phone !== undefined) {
+      sets.push("phone = ?");
+      params.push(phone);
+    }
+
+    // 如果没有任何要更新的字段，直接返回当前用户
+    if (sets.length === 0) {
+      return await this.getUserById(id);
+    }
+
+    const sql = `UPDATE users SET ${sets.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+    params.push(id);
+
+    try {
+      console.log("Executing SQL:", sql, "params:", params);
+      await db.run(sql, params);
+    } catch (err) {
+      console.error("updateUser SQL error:", err, "sql:", sql, "params:", params);
+      // 抛出带有更多上下文的错误，控制器会在开发环境中返回给客户端
+      const e = new Error(`updateUser failed: ${err.message}`);
+      e.stack = err.stack;
+      e.sql = sql;
+      e.params = params;
+      throw e;
+    }
 
     return await this.getUserById(id);
   }
@@ -125,6 +161,16 @@ class UserService {
     );
 
     return await this.getUserByUsername(username);
+  }
+
+  // 更新用户权限（按 id）
+  async updateUserPermissionById(id, userPermission) {
+    await db.run(
+      `UPDATE users SET user_permission = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [userPermission, id]
+    );
+
+    return await this.getUserById(id);
   }
 
   // 验证密码
@@ -141,6 +187,25 @@ class UserService {
       [id]
     );
     return result.changes > 0;
+  }
+
+  // 统计用户在其他表中的引用，返回各表的计数
+  async countUserReferences(id) {
+    const refs = {};
+
+    // files.uploaded_by
+    const f = await db.get(`SELECT COUNT(*) as cnt FROM files WHERE uploaded_by = ?`, [id]);
+    refs.files = typeof f.cnt === 'bigint' ? Number(f.cnt) : (f.cnt || 0);
+
+    // patients.createdBy
+    const p = await db.get(`SELECT COUNT(*) as cnt FROM patients WHERE createdBy = ?`, [id]);
+    refs.patients = typeof p.cnt === 'bigint' ? Number(p.cnt) : (p.cnt || 0);
+
+    // file_download_authorizations.user_id
+    const a = await db.get(`SELECT COUNT(*) as cnt FROM file_download_authorizations WHERE user_id = ?`, [id]);
+    refs.file_download_authorizations = typeof a.cnt === 'bigint' ? Number(a.cnt) : (a.cnt || 0);
+
+    return refs;
   }
 }
 

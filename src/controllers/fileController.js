@@ -361,22 +361,18 @@ export const getFileTypes = async (req, res) => {
   }
 };
 
-// 授权访客下载
+// 授权访客下载（支持 userId 或 username）
 export const authorizeDownload = async (req, res) => {
   try {
-    const { fileId, username, expiresIn = 24 } = req.body;
+    const { fileId, userId, expiresIn = 24 } = req.body;
 
-    if (!fileId || !username) {
-      return res.json(createResponse(4001, "文件ID和用户名不能为空"));
+    if (!fileId || (userId === undefined || userId === null)) {
+      return res.json(createResponse(4001, "文件ID和用户ID不能为空"));
     }
 
-    const result = await fileService.authorizeDownload(
-      fileId,
-      username,
-      expiresIn
-    );
+    const result = await fileService.authorizeDownload(fileId, userId, expiresIn);
 
-    if (result.success) {
+    if (result && result.success) {
       res.json(
         createResponse(0, "下载授权成功", {
           username: result.username,

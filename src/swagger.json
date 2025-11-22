@@ -503,7 +503,7 @@
       "post": {
         "summary": "文件下载（管理员/超级管理员/用户）",
         "deprecated": false,
-        "description": "- 使用 fetch 请求\n```javascript\nconst a = await fetch(\"http://localhost:3000/api/file/download\",{method: \"POST\" ,body: JSON.stringify({ id: 2 }) ,headers:{Authorization:\"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzYzNzM4MjA2LCJleHAiOjE3NjQzNDMwMDZ9.tWiVr5JtX05Wn2HR79taWGs4xNvP0dSjYGDufKhh_RU\", \"content-type\": \"application/json\"}})\n```",
+        "description": "使用 POST 请求，传入 { id }，并在 `Authorization` 头中携带 `Bearer <token>`。",
         "tags": ["File", "File"],
         "parameters": [],
         "requestBody": {
@@ -738,9 +738,10 @@
                 "type": "object",
                 "properties": {
                   "token": { "type": "string" },
-                  "user": {
+                      "user": {
                     "type": "object",
                     "properties": {
+                      "id": { "type": "integer" },
                       "username": { "type": "string" },
                       "userPermission": { "$ref": "#/components/schemas/UserPermission" }
                     }
@@ -796,6 +797,7 @@
                     "items": {
                       "type": "object",
                       "properties": {
+                        "id": { "type": "integer" },
                         "username": { "type": "string" },
                         "userPermission": { "$ref": "#/components/schemas/UserPermission" },
                         "department": { "type": "string" },
@@ -870,9 +872,10 @@
           "password": {
             "type": "string"
           },
-          "userPermission": { "$ref": "#/components/schemas/UserPermission" },
           "department": {
-            "type": "string"
+            "type": "string",
+            "default": "访客",
+            "description": "注册时默认部门为 访客，可由用户提交修改"
           },
           "phone": {
             "type": "string"
@@ -1086,7 +1089,21 @@
       },
       "AuthorizeDownloadResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "type": "object", "properties": { "token": { "type": "string" }, "expiresAt": { "type": "string", "format": "date-time" } } } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "fileId": { "type": "integer" },
+                  "expiresAt": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        ]
       },
       "HealthResponse": {
         "type": "object",
@@ -1098,7 +1115,6 @@
           "username": {
             "type": "string"
           },
-          "userPermission": { "$ref": "#/components/schemas/UserPermission" },
           "department": {
             "type": "string"
           },
@@ -1110,24 +1126,23 @@
       "UpdatePermissionRequest": {
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
+          "id": {
+            "type": "integer",
+            "description": "用户 ID（用于标识要修改权限的用户）"
           },
-          "userPermission": {
-            "type": "string",
-            "enum": ["超级管理员", "管理员", "用户", "访客"]
-          }
+          "userPermission": { "$ref": "#/components/schemas/UserPermission" }
         },
-        "required": ["username", "userPermission"]
+        "required": ["id", "userPermission"]
       },
       "DeleteUserRequest": {
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
+          "id": {
+            "type": "integer",
+            "description": "要删除的用户 ID"
           }
         },
-        "required": ["username"]
+        "required": ["id"]
       },
       "PatientCreate": {
         "type": "object",
@@ -1429,15 +1444,16 @@
           "fileId": {
             "type": "integer"
           },
-          "username": {
-            "type": "string"
+          "userId": {
+            "type": "integer",
+            "description": "目标用户的 ID（只接受 userId 以标识用户）"
           },
           "expiresIn": {
             "type": "integer",
             "description": "hours, default 24"
           }
         },
-        "required": ["fileId", "username"]
+        "required": ["fileId", "userId"]
       }
     },
     "securitySchemes": {

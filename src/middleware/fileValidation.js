@@ -28,10 +28,14 @@ export const validateFileUpload = (req, res, next) => {
 };
 
 export const validateDownloadAuth = (req, res, next) => {
-  const { fileId, username, expiresIn } = req.body;
+  const { fileId, userId, expiresIn } = req.body;
 
-  if (!fileId || !username) {
-    return res.json(createResponse(4001, "文件ID和用户名不能为空"));
+  if (!fileId || (userId === undefined || userId === null)) {
+    return res.json(createResponse(4001, "文件ID和用户ID不能为空"));
+  }
+
+  if (isNaN(Number(userId))) {
+    return res.json(createResponse(4002, "userId 必须为数字"));
   }
 
   if (expiresIn && (isNaN(expiresIn) || expiresIn <= 0)) {
