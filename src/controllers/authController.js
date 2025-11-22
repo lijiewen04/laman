@@ -183,7 +183,7 @@ export const updateUserPermission = async (req, res) => {
     }
 
     // 验证权限类型
-    if (!["超级管理员", "管理员", "访客"].includes(userPermission)) {
+    if (!["超级管理员", "管理员", "用户", "访客"].includes(userPermission)) {
       return res.json(createResponse(4002, "权限类型无效"));
     }
 

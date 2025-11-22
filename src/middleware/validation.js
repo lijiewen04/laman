@@ -18,10 +18,10 @@ export const validateRegister = (req, res, next) => {
   // 验证权限类型
   if (
     req.body.userPermission &&
-    !["超级管理员", "管理员", "访客"].includes(req.body.userPermission)
+    !["超级管理员", "管理员", "用户", "访客"].includes(req.body.userPermission)
   ) {
     return res.json(
-      createResponse(2005, "权限类型无效，必须是：超级管理员、管理员或访客")
+      createResponse(2005, "权限类型无效，必须是：超级管理员、管理员、用户或访客")
     );
   }
 

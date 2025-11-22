@@ -360,7 +360,8 @@ class FileService {
   // 检查用户是否有下载权限
   canUserDownload(userPermission) {
     // 超级管理员和管理员可以直接下载
-    return ["超级管理员", "管理员"].includes(userPermission);
+    // 新增角色 "用户"，该角色位于访客和管理员之间，具备直接下载权限
+    return ["超级管理员", "管理员", "用户"].includes(userPermission);
   }
 
   // 为访客授权下载

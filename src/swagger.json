@@ -501,7 +501,7 @@
     },
     "/api/file/download": {
       "post": {
-        "summary": "文件下载",
+        "summary": "文件下载（管理员/超级管理员/用户）",
         "deprecated": false,
         "description": "- 使用 fetch 请求\n```javascript\nconst a = await fetch(\"http://localhost:3000/api/file/download\",{method: \"POST\" ,body: JSON.stringify({ id: 2 }) ,headers:{Authorization:\"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzYzNzM4MjA2LCJleHAiOjE3NjQzNDMwMDZ9.tWiVr5JtX05Wn2HR79taWGs4xNvP0dSjYGDufKhh_RU\", \"content-type\": \"application/json\"}})\n```",
         "tags": ["File", "File"],
@@ -723,6 +723,11 @@
           "msg": { "type": "string", "example": "成功" }
         }
       },
+      "UserPermission": {
+        "type": "string",
+        "enum": ["访客", "用户", "管理员", "超级管理员"],
+        "description": "用户权限类型枚举"
+      },
       "AuthRegisterResponse": {
         "type": "object",
         "allOf": [
@@ -737,7 +742,7 @@
                     "type": "object",
                     "properties": {
                       "username": { "type": "string" },
-                      "userPermission": { "type": "string" }
+                      "userPermission": { "$ref": "#/components/schemas/UserPermission" }
                     }
                   }
                 }
@@ -768,7 +773,7 @@
                 "properties": {
                   "id": { "type": "integer" },
                   "username": { "type": "string" },
-                  "userPermission": { "type": "string" },
+                  "userPermission": { "$ref": "#/components/schemas/UserPermission" },
                   "department": { "type": "string" },
                   "phone": { "type": "string" }
                 }
@@ -792,7 +797,7 @@
                       "type": "object",
                       "properties": {
                         "username": { "type": "string" },
-                        "userPermission": { "type": "string" },
+                        "userPermission": { "$ref": "#/components/schemas/UserPermission" },
                         "department": { "type": "string" },
                         "phone": { "type": "string" }
                       }
@@ -824,7 +829,7 @@
                 "nullable": true,
                 "properties": {
                   "username": { "type": "string" },
-                  "userPermission": { "type": "string" },
+                  "userPermission": { "$ref": "#/components/schemas/UserPermission" },
                   "department": { "type": "string" },
                   "phone": { "type": "string" }
                 }
@@ -837,7 +842,7 @@
         "type": "object",
         "allOf": [
           { "$ref": "#/components/schemas/BaseResponse" },
-          { "properties": { "data": { "type": "object", "nullable": true, "properties": { "username": { "type": "string" }, "userPermission": { "type": "string" } } } } }
+          { "properties": { "data": { "type": "object", "nullable": true, "properties": { "username": { "type": "string" }, "userPermission": { "$ref": "#/components/schemas/UserPermission" } } } } }
         ]
       },
       "AuthDeleteUserResponse": {
@@ -865,11 +870,7 @@
           "password": {
             "type": "string"
           },
-          "userPermission": {
-            "type": "string",
-            "enum": ["访客", "管理员", "超级管理员"],
-            "default": "访客"
-          },
+          "userPermission": { "$ref": "#/components/schemas/UserPermission" },
           "department": {
             "type": "string"
           },
@@ -1097,10 +1098,7 @@
           "username": {
             "type": "string"
           },
-          "userPermission": {
-            "type": "string",
-            "enum": ["超级管理员", "管理员", "访客"]
-          },
+          "userPermission": { "$ref": "#/components/schemas/UserPermission" },
           "department": {
             "type": "string"
           },
@@ -1117,7 +1115,7 @@
           },
           "userPermission": {
             "type": "string",
-            "enum": ["超级管理员", "管理员", "访客"]
+            "enum": ["超级管理员", "管理员", "用户", "访客"]
           }
         },
         "required": ["username", "userPermission"]
@@ -1218,7 +1216,7 @@
           "limit": { "type": "integer", "default": 20 },
           "username": { "type": "string", "description": "按用户名模糊搜索" },
           "department": { "type": "string", "description": "按科室/部门模糊搜索" },
-          "userPermission": { "type": "string", "description": "按权限精确匹配（例如：超级管理员/管理员/访客）" }
+          "userPermission": { "$ref": "#/components/schemas/UserPermission", "description": "按权限精确匹配（例如：超级管理员/管理员/访客）" }
         }
       },
       "PatientListItem": {
