@@ -1,246 +1,1185 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.1",
   "info": {
-    "title": "后端相关代码 API",
-    "version": "1.0.0",
-    "description": "自动生成的 OpenAPI 文档 — 基于项目的 routes 和 controllers。所有接口均为 POST，统一响应格式 {status, msg, data}。"
+    "title": "个人项目",
+    "description": "",
+    "version": "1.0.0"
   },
-  "servers": [
-    { "url": "http://localhost:3000", "description": "本地开发服务器" }
+  "tags": [
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Patient"
+    },
+    {
+      "name": "File"
+    },
+    {
+      "name": "System"
+    }
   ],
   "paths": {
     "/api/auth/register": {
       "post": {
-        "tags": ["Auth"],
         "summary": "用户注册",
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
             }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "标准响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
           }
         },
-        "responses": { "200": { "description": "标准响应", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "security": []
       }
     },
     "/api/auth/login": {
       "post": {
-        "tags": ["Auth"],
         "summary": "用户登录",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } },
-        "responses": { "200": { "description": "登录结果（返回 token）", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "登录结果（返回 token）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "examples": [0]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "examples": ["成功"]
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          },
+          "x-200-2": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "",
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "examples": [0]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "examples": ["成功"]
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
       }
     },
     "/api/auth/me": {
       "post": {
-        "tags": ["Auth"],
         "summary": "获取当前用户信息",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "当前用户信息", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "当前用户信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/auth/user-list": {
       "post": {
-        "tags": ["Auth"],
         "summary": "获取用户列表（管理员/超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "用户列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "用户列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/auth/profile": {
       "post": {
-        "tags": ["Auth"],
         "summary": "更新当前用户资料",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" } } } },
-        "responses": { "200": { "description": "更新结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "更新结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/auth/update-permission": {
       "post": {
-        "tags": ["Auth"],
         "summary": "更新指定用户权限（超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdatePermissionRequest" } } } },
-        "responses": { "200": { "description": "更新权限结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePermissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "更新权限结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/auth/delete": {
       "post": {
-        "tags": ["Auth"],
         "summary": "删除用户（超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteUserRequest" } } } },
-        "responses": { "200": { "description": "删除结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
-
     "/api/patient/create": {
       "post": {
-        "tags": ["Patient"],
         "summary": "创建病人（管理员/超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientCreate" } } } },
-        "responses": { "200": { "description": "创建结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientCreate"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "创建结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/patient/list": {
       "post": {
-        "tags": ["Patient"],
         "summary": "获取病人列表",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PatientListQuery" } } } },
-        "responses": { "200": { "description": "病人列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientListQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "病人列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/patient/detail": {
       "post": {
-        "tags": ["Patient"],
         "summary": "获取病人详情",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GetDetailRequest" } } } },
-        "responses": { "200": { "description": "病人详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDetailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "病人详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/patient/update": {
       "post": {
-        "tags": ["Patient"],
         "summary": "更新病人信息（管理员/超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdatePatientRequest" } } } },
-        "responses": { "200": { "description": "更新结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePatientRequest"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "更新结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/patient/delete": {
       "post": {
-        "tags": ["Patient"],
         "summary": "删除病人（超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeletePatientRequest" } } } },
-        "responses": { "200": { "description": "删除结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePatientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/patient/groups": {
       "post": {
-        "tags": ["Patient"],
         "summary": "获取分组列表",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "分组列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "分组列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/patient/statistics": {
       "post": {
-        "tags": ["Patient"],
         "summary": "获取统计数据",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "统计数据", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["Patient", "Patient"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "统计数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
-
     "/api/file/upload": {
       "post": {
-        "tags": ["File"],
         "summary": "文件上传（管理员/超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "$ref": "#/components/schemas/FileUpload" } } } },
-        "responses": { "200": { "description": "上传结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "example": ""
+                  },
+                  "fileType": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": ""
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "上传结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/file/download": {
       "post": {
-        "tags": ["File"],
         "summary": "文件下载",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DownloadRequest" } } } },
-        "responses": { "200": { "description": "如果成功，会返回二进制文件流；失败返回 JSON", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "- 使用 fetch 请求\n```javascript\nconst a = await fetch(\"http://localhost:3000/api/file/download\",{method: \"POST\" ,body: JSON.stringify({ id: 2 }) ,headers:{Authorization:\"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzYzNzM4MjA2LCJleHAiOjE3NjQzNDMwMDZ9.tWiVr5JtX05Wn2HR79taWGs4xNvP0dSjYGDufKhh_RU\", \"content-type\": \"application/json\"}})\n```",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadRequest"
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          },
+          "x-200-2": {
+            "description": "如果成功，会返回二进制文件流；失败返回 JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/file/list": {
       "post": {
-        "tags": ["File"],
         "summary": "获取文件列表",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FileListQuery" } } } },
-        "responses": { "200": { "description": "文件列表和分页信息", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileListQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "文件列表和分页信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/file/preview": {
       "post": {
-        "tags": ["File"],
         "summary": "获取文件预览",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FilePreviewRequest" } } } },
-        "responses": { "200": { "description": "预览数据（JSON）", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "预览数据（JSON）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/file/types": {
       "post": {
-        "tags": ["File"],
         "summary": "获取文件类型列表",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "文件类型列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "文件类型列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/file/delete": {
       "post": {
-        "tags": ["File"],
         "summary": "删除文件（超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeleteFileRequest" } } } },
-        "responses": { "200": { "description": "删除结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/file/authorize-download": {
       "post": {
-        "tags": ["File"],
         "summary": "授权访客下载（超级管理员）",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthorizeDownloadRequest" } } } },
-        "responses": { "200": { "description": "授权结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeDownloadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "授权结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
-
     "/health": {
       "post": {
-        "tags": ["System"],
         "summary": "健康检查",
-        "responses": { "200": { "description": "服务状态", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StandardResponse" } } } } }
+        "deprecated": false,
+        "description": "",
+        "tags": ["System", "System"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "服务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
       }
     }
   },
   "components": {
-    "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
-    },
     "schemas": {
       "StandardResponse": {
         "type": "object",
         "properties": {
-          "status": { "type": "integer", "example": 0 },
-          "msg": { "type": "string", "example": "成功" },
-          "data": { "oneOf": [{ "type": "object" }, { "type": "array" }, { "type": "null" }] }
+          "status": {
+            "type": "integer",
+            "examples": [0]
+          },
+          "msg": {
+            "type": "string",
+            "examples": ["成功"]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {}
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
         }
       },
-      "LoginRequest": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" } }, "required": ["username", "password"] },
-      "RegisterRequest": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" }, "userPermission": { "type": "string", "enum": ["访客","管理员","超级管理员"], "default": "访客" }, "department": { "type": "string" }, "phone": { "type": "string" } }, "required": ["username", "password"] },
-      "UpdateProfileRequest": { "type": "object", "properties": { "username": { "type": "string" }, "userPermission": { "type": "string" }, "department": { "type": "string" }, "phone": { "type": "string" } } },
-      "UpdatePermissionRequest": { "type": "object", "properties": { "username": { "type": "string" }, "userPermission": { "type": "string", "enum": ["超级管理员","管理员","访客"] } }, "required": ["username","userPermission"] },
-      "DeleteUserRequest": { "type": "object", "properties": { "username": { "type": "string" } }, "required": ["username"] },
-
-      "PatientCreate": { "type": "object", "properties": { "name": { "type": "string" }, "serialNo": { "type": "string" }, "abbr": { "type": "string" }, "time": { "type": "string" }, "inpatientOutpatient": { "type": "string" }, "group": { "type": "string" }, "gender": { "type": "string" }, "age": { "type": "integer" }, "caseNo": { "type": "string" }, "diagnosis": { "type": "string" }, "isTested": { "type": "boolean" }, "preTreatment": { "type": "boolean", "description": "采样前是否接受治疗，布尔值" }, "treatmentType": { "type": "string" }, "memo": { "type": "string" } }, "required": ["name","serialNo"] },
-      "PatientListQuery": { "type": "object", "properties": { "page": { "type": "integer", "default": 1 }, "limit": { "type": "integer", "default": 20 }, "name": { "type": "string" }, "serialNo": { "type": "string" }, "inpatientOutpatient": { "type": "string" }, "isTested": { "type": "boolean" }, "diagnosis": { "type": "string" }, "group": { "type": "string" } } },
-      "PatientListItem": { "type": "object", "properties": { "id": { "type": "integer" }, "abbr": { "type": "string" }, "time": { "type": "string" }, "name": { "type": "string" }, "serialNo": { "type": "string" }, "inpatientOutpatient": { "type": "string" }, "group": { "type": "string" }, "gender": { "type": "string" }, "age": { "type": "integer" }, "caseNo": { "type": "string" }, "diagnosis": { "type": "string" }, "isTested": { "type": "boolean" }, "tStage": { "type": "string" }, "nStage": { "type": "string" }, "mStage": { "type": "string" }, "stage": { "type": "string" }, "preTreatment": { "type": "boolean" }, "treatmentType": { "type": "string" }, "memo": { "type": "string" } } },
-      "GetDetailRequest": { "type": "object", "properties": { "id": { "type": "integer" } }, "required": ["id"] },
-      "UpdatePatientRequest": { "type": "object", "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "serialNo": { "type": "string" }, "abbr": { "type": "string" }, "time": { "type": "string" }, "inpatientOutpatient": { "type": "string" }, "group": { "type": "string" }, "gender": { "type": "string" }, "age": { "type": "integer" }, "caseNo": { "type": "string" }, "diagnosis": { "type": "string" }, "isTested": { "type": "boolean" }, "preTreatment": { "type": "boolean", "description": "采样前是否接受治疗，布尔值" }, "treatmentType": { "type": "string" }, "memo": { "type": "string" } }, "required": ["id"] },
-      "DeletePatientRequest": { "type": "object", "properties": { "id": { "type": "integer" } }, "required": ["id"] },
-
-      "FileUpload": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" }, "fileType": { "type": "string" }, "description": { "type": "string" } }, "required": ["file"] },
-      "DownloadRequest": { "type": "object", "properties": { "id": { "type": "integer" } }, "required": ["id"] },
-      "FileListQuery": { "type": "object", "properties": { "page": { "type": "integer", "default": 1 }, "limit": { "type": "integer", "default": 20 }, "fileType": { "type": "string" }, "uploadedBy": { "type": "string" }, "filename": { "type": "string" }, "originalName": { "type": "string" } } },
-      "FilePreviewRequest": { "type": "object", "properties": { "id": { "type": "integer" }, "limit": { "type": "integer", "default": 10 } }, "required": ["id"] },
-      "DeleteFileRequest": { "type": "object", "properties": { "id": { "type": "integer" } }, "required": ["id"] },
-      "AuthorizeDownloadRequest": { "type": "object", "properties": { "fileId": { "type": "integer" }, "username": { "type": "string" }, "expiresIn": { "type": "integer", "description": "hours, default 24" } }, "required": ["fileId","username"] }
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": ["username", "password"]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "userPermission": {
+            "type": "string",
+            "enum": ["访客", "管理员", "超级管理员"],
+            "default": "访客"
+          },
+          "department": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": ["username", "password"]
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "userPermission": {
+            "type": "string",
+            "enum": ["超级管理员", "管理员", "访客"]
+          },
+          "department": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatePermissionRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "userPermission": {
+            "type": "string",
+            "enum": ["超级管理员", "管理员", "访客"]
+          }
+        },
+        "required": ["username", "userPermission"]
+      },
+      "DeleteUserRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": ["username"]
+      },
+      "PatientCreate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "serialNo": {
+            "type": "string"
+          },
+          "abbr": {
+            "type": "string"
+          },
+          "time": {
+            "type": "integer"
+          },
+          "inpatientOutpatient": {
+            "type": "string",
+            "enum": ["住院", "门诊"]
+          },
+          "group": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer"
+          },
+          "caseNo": {
+            "type": "string"
+          },
+          "diagnosis": {
+            "type": "string"
+          },
+          "isTested": {
+            "type": "boolean"
+          },
+          "preTreatment": {
+            "type": "boolean"
+          },
+          "treatmentType": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string"
+          }
+        },
+        "required": ["name", "serialNo"]
+      },
+      "PatientListQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "default": 1
+          },
+          "limit": {
+            "type": "integer",
+            "default": 20
+          },
+          "name": {
+            "type": "string"
+          },
+          "serialNo": {
+            "type": "string"
+          },
+          "inpatientOutpatient": {
+            "type": "string"
+          },
+          "isTested": {
+            "type": "boolean"
+          },
+          "diagnosis": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          }
+        }
+      },
+      "PatientListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "abbr": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "serialNo": {
+            "type": "string"
+          },
+          "inpatientOutpatient": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer"
+          },
+          "caseNo": {
+            "type": "string"
+          },
+          "diagnosis": {
+            "type": "string"
+          },
+          "isTested": {
+            "type": "boolean"
+          },
+          "tStage": {
+            "type": "string"
+          },
+          "nStage": {
+            "type": "string"
+          },
+          "mStage": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "preTreatment": {
+            "type": "string"
+          },
+          "treatmentType": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string"
+          }
+        }
+      },
+      "GetDetailRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": ["id"]
+      },
+      "UpdatePatientRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "serialNo": {
+            "type": "string"
+          },
+          "abbr": {
+            "type": "string"
+          },
+          "time": {
+            "type": "integer"
+          },
+          "inpatientOutpatient": {
+            "type": "string",
+            "enum": ["住院", "门诊"]
+          },
+          "group": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer"
+          },
+          "caseNo": {
+            "type": "string"
+          },
+          "diagnosis": {
+            "type": "string"
+          },
+          "isTested": {
+            "type": "boolean"
+          },
+          "preTreatment": {
+            "type": "boolean"
+          },
+          "treatmentType": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string"
+          }
+        },
+        "required": ["id"]
+      },
+      "DeletePatientRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": ["id"]
+      },
+      "FileUpload": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary"
+          },
+          "fileType": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["file"]
+      },
+      "DownloadRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": ["id"]
+      },
+      "FileListQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "default": 1
+          },
+          "limit": {
+            "type": "integer",
+            "default": 20
+          },
+          "fileType": {
+            "type": "string"
+          },
+          "uploadedBy": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "originalName": {
+            "type": "string"
+          }
+        }
+      },
+      "FilePreviewRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 10
+          }
+        },
+        "required": ["id"]
+      },
+      "DeleteFileRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": ["id"]
+      },
+      "AuthorizeDownloadRequest": {
+        "type": "object",
+        "properties": {
+          "fileId": {
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "hours, default 24"
+          }
+        },
+        "required": ["fileId", "username"]
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
     }
-  }
+  },
+  "servers": []
 }
