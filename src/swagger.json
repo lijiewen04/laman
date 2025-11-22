@@ -116,6 +116,13 @@
         "description": "",
         "tags": ["Auth", "Auth"],
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthUserListQuery" }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "用户列表",
@@ -1202,6 +1209,16 @@
           "group": {
             "type": "string"
           }
+        }
+      },
+      "AuthUserListQuery": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "default": 1 },
+          "limit": { "type": "integer", "default": 20 },
+          "username": { "type": "string", "description": "按用户名模糊搜索" },
+          "department": { "type": "string", "description": "按科室/部门模糊搜索" },
+          "userPermission": { "type": "string", "description": "按权限精确匹配（例如：超级管理员/管理员/访客）" }
         }
       },
       "PatientListItem": {

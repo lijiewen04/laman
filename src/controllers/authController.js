@@ -106,32 +106,31 @@ export const getMe = async (req, res) => {
 
 export const getUserList = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.body;
-    const users = await userService.getAllUsers();
+    const { page = 1, limit = 20, username, department, userPermission } = req.body;
 
-    // 转换为 UserListItem 格式
-    const userList = users.map((user) => ({
+    const filter = {};
+    if (username) filter.username = username;
+    if (department) filter.department = department;
+    if (userPermission) filter.userPermission = userPermission;
+
+    // 使用 service 层的 SQL 过滤与分页
+    const result = await userService.getUsers(filter, Number(page), Number(limit));
+
+    const items = result.users.map((user) => ({
       username: user.username,
       userPermission: user.userPermission,
       department: user.department || undefined,
       phone: user.phone || undefined,
     }));
 
-    // 在 controller 层做简单的分页（service 层返回全部）
-    const total = userList.length;
-    const p = Number(page);
-    const l = Number(limit);
-    const start = (p - 1) * l;
-    const items = userList.slice(start, start + l);
-
     res.json(
       createResponse(0, "获取用户列表成功", {
         items,
         pagination: {
-          page: p,
-          limit: l,
-          total,
-          totalPages: Math.ceil(total / l),
+          page: Number(result.page),
+          limit: Number(result.limit),
+          total: Number(result.total),
+          totalPages: Number(result.totalPages),
         },
       })
     );

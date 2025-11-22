@@ -58,6 +58,52 @@ class UserService {
     );
   }
 
+  // 获取用户列表，支持筛选与分页（推荐使用）
+  async getUsers(filter = {}, page = 1, limit = 20) {
+    let whereClause = "WHERE is_active = true";
+    const params = [];
+
+    if (filter.username) {
+      whereClause += ` AND username LIKE ?`;
+      params.push(`%${filter.username}%`);
+    }
+
+    if (filter.department) {
+      whereClause += ` AND department LIKE ?`;
+      params.push(`%${filter.department}%`);
+    }
+
+    if (filter.userPermission) {
+      whereClause += ` AND user_permission = ?`;
+      params.push(filter.userPermission);
+    }
+
+    const offset = (page - 1) * limit;
+
+    const countResult = await db.get(
+      `SELECT COUNT(*) as total FROM users ${whereClause}`,
+      params
+    );
+    const total = typeof countResult.total === "bigint" ? Number(countResult.total) : countResult.total;
+
+    const users = await db.all(
+      `SELECT username, user_permission as userPermission, department, phone
+       FROM users
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    return {
+      users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   // 更新用户信息
   async updateUser(id, updateData) {
     const { username, userPermission, department, phone } = updateData;

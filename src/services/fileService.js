@@ -64,7 +64,20 @@ class FileService {
       if (typeof v === "bigint") {
         out[key] = Number(v);
       } else if (v && typeof v === "object" && !Array.isArray(v)) {
-        out[key] = this.normalizeRow(v);
+        // DuckDB 的 TIMESTAMP 可能会被驱动封装为对象，例如 { micros: BigInt } 或 { micros: number }
+        // 把这样的 timestamp 转为 ISO 字符串，便于前端使用和 JSON 序列化
+        if (Object.prototype.hasOwnProperty.call(v, "micros")) {
+          try {
+            const micros = v.microseconds !== undefined ? v.microseconds : v.micros;
+            const ms = typeof micros === "bigint" ? Number(micros) / 1000 : Number(micros) / 1000;
+            const d = new Date(ms);
+            out[key] = d.toISOString();
+          } catch (e) {
+            out[key] = this.normalizeRow(v);
+          }
+        } else {
+          out[key] = this.normalizeRow(v);
+        }
       } else {
         out[key] = v;
       }
