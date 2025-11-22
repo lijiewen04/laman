@@ -335,8 +335,26 @@ export const deleteFile = async (req, res) => {
 // 获取文件类型列表
 export const getFileTypes = async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.body;
     const types = await fileService.getFileTypes();
-    res.json(createResponse(0, "获取文件类型成功", types));
+
+    const total = Array.isArray(types) ? types.length : 0;
+    const p = Number(page);
+    const l = Number(limit);
+    const start = (p - 1) * l;
+    const items = Array.isArray(types) ? types.slice(start, start + l) : [];
+
+    res.json(
+      createResponse(0, "获取文件类型成功", {
+        items,
+        pagination: {
+          page: p,
+          limit: l,
+          total,
+          totalPages: Math.ceil(total / l),
+        },
+      })
+    );
   } catch (error) {
     console.error("获取文件类型错误:", error);
     res.json(createResponse(5001, "服务器错误"));

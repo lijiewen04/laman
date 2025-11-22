@@ -73,7 +73,18 @@ export const getPatientList = async (req, res) => {
       memo: patient.memo,
     }));
 
-    res.json(createResponse(0, "获取病人列表成功", patientList));
+    // 返回带分页信息的结果
+    res.json(
+      createResponse(0, "获取病人列表成功", {
+        items: patientList,
+        pagination: {
+          page: Number(result.page || page),
+          limit: Number(result.limit || limit),
+          total: Number(result.total || 0),
+          totalPages: Number(result.totalPages || Math.ceil((result.total || 0) / (result.limit || limit))),
+        },
+      })
+    );
   } catch (error) {
     console.error("获取病人列表错误:", error);
     res.json(createResponse(5001, "服务器错误"));
@@ -213,8 +224,26 @@ export const deletePatient = async (req, res) => {
 
 export const getGroups = async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.body;
     const groups = await patientService.getGroups();
-    res.json(createResponse(0, "获取分组列表成功", groups));
+
+    const total = Array.isArray(groups) ? groups.length : 0;
+    const p = Number(page);
+    const l = Number(limit);
+    const start = (p - 1) * l;
+    const items = Array.isArray(groups) ? groups.slice(start, start + l) : [];
+
+    res.json(
+      createResponse(0, "获取分组列表成功", {
+        items,
+        pagination: {
+          page: p,
+          limit: l,
+          total,
+          totalPages: Math.ceil(total / l),
+        },
+      })
+    );
   } catch (error) {
     console.error("获取分组列表错误:", error);
     res.json(createResponse(5001, "服务器错误"));

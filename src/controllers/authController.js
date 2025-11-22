@@ -106,6 +106,7 @@ export const getMe = async (req, res) => {
 
 export const getUserList = async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.body;
     const users = await userService.getAllUsers();
 
     // 转换为 UserListItem 格式
@@ -116,7 +117,24 @@ export const getUserList = async (req, res) => {
       phone: user.phone || undefined,
     }));
 
-    res.json(createResponse(0, "获取用户列表成功", userList));
+    // 在 controller 层做简单的分页（service 层返回全部）
+    const total = userList.length;
+    const p = Number(page);
+    const l = Number(limit);
+    const start = (p - 1) * l;
+    const items = userList.slice(start, start + l);
+
+    res.json(
+      createResponse(0, "获取用户列表成功", {
+        items,
+        pagination: {
+          page: p,
+          limit: l,
+          total,
+          totalPages: Math.ceil(total / l),
+        },
+      })
+    );
   } catch (error) {
     console.error("获取用户列表错误:", error);
     res.json(createResponse(5001, "服务器错误"));
