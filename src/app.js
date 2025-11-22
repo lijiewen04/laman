@@ -52,6 +52,21 @@ app.use("*", (req, res) => {
   res.json(createResponse(4001, "路由不存在"));
 });
 
+// 专门处理 JSON 解析错误（来自 express.json / body-parser）
+app.use((err, req, res, next) => {
+  // express.json 在解析失败时会产生 SyntaxError，且通常包含 `status` 为 400
+  if (
+    err instanceof SyntaxError &&
+    err.status === 400 &&
+    "body" in err
+  ) {
+    console.warn("JSON 解析错误：", err.message);
+    return res.json(createResponse(4000, "无效的 JSON 格式"));
+  }
+  // 其他非 JSON 错误传给下一个错误处理中间件
+  next(err);
+});
+
 // 全局错误处理
 app.use((err, req, res, next) => {
   console.error(err.stack);
