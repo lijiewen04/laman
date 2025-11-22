@@ -5,7 +5,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import fileRoutes from "./routes/file.js";
 // 导入数据库连接（会自动初始化）
-import "./database/duckdb.js";
+import database, { closeDatabase } from "./database/duckdb.js";
 import authRoutes from "./routes/auth.js";
 import patientRoutes from "./routes/patient.js";
 import { createResponse } from "./middleware/auth.js";
@@ -49,19 +49,15 @@ app.post("/health", (req, res) => {
 
 // 404处理
 app.use("*", (req, res) => {
-  res.json(createResponse(4001, "路由不存在"));
+  res.status(200).json(createResponse(4001, "路由不存在"));
 });
 
 // 专门处理 JSON 解析错误（来自 express.json / body-parser）
 app.use((err, req, res, next) => {
   // express.json 在解析失败时会产生 SyntaxError，且通常包含 `status` 为 400
-  if (
-    err instanceof SyntaxError &&
-    err.status === 400 &&
-    "body" in err
-  ) {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
     console.warn("JSON 解析错误：", err.message);
-    return res.json(createResponse(4000, "无效的 JSON 格式"));
+    return res.status(200).json(createResponse(4000, "无效的 JSON 格式"));
   }
   // 其他非 JSON 错误传给下一个错误处理中间件
   next(err);
@@ -70,14 +66,65 @@ app.use((err, req, res, next) => {
 // 全局错误处理
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.json(createResponse(5001, "服务器内部错误"));
+  res.status(404).json(createResponse(5001, "服务器内部错误"));
 });
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
   console.log(`环境: ${process.env.NODE_ENV}`);
   console.log(`数据库: DuckDB (${process.env.DATABASE_PATH})`);
   console.log("所有接口使用POST方法，响应格式: {status, msg, data}");
+});
+
+// 优雅退出处理
+async function gracefulShutdown(signal) {
+  try {
+    console.log(`收到 ${signal}，正在优雅关闭...`);
+
+    // 停止接收新连接
+    if (server && typeof server.close === "function") {
+      server.close(async (err) => {
+        if (err) {
+          console.error("关闭服务器时出错:", err);
+          process.exit(1);
+        }
+        // 关闭数据库连接（如果可用）
+        try {
+          if (closeDatabase && typeof closeDatabase === "function") {
+            await closeDatabase();
+          } else if (database && typeof database.close === "function") {
+            await database.close();
+          }
+        } catch (e) {
+          console.error("关闭资源时出错:", e);
+        }
+        console.log("优雅关闭完成，退出进程");
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+
+    // 如果在超时时间内未能退出，强制退出
+    setTimeout(() => {
+      console.warn("强制退出");
+      process.exit(1);
+    }, 10000).unref();
+  } catch (e) {
+    console.error("优雅关闭失败:", e);
+    process.exit(1);
+  }
+}
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("uncaughtException", (err) => {
+  console.error("未捕获异常:", err);
+  gracefulShutdown("uncaughtException");
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("未处理的 Promise 拒绝:", reason);
+  gracefulShutdown("unhandledRejection");
 });

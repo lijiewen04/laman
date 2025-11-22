@@ -81,7 +81,11 @@
             },
             "headers": {}
           },
-          "x-200-2": { "description": "备用响应", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthLoginResponse" } } }, "headers": {} }
+          "x-200-2": {
+            "description": "备用响应",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthLoginResponse" } } },
+            "headers": {}
+          }
         },
         "security": []
       }
@@ -738,7 +742,7 @@
                 "type": "object",
                 "properties": {
                   "token": { "type": "string" },
-                      "user": {
+                  "user": {
                     "type": "object",
                     "properties": {
                       "id": { "type": "integer" },
@@ -844,12 +848,27 @@
         "type": "object",
         "allOf": [
           { "$ref": "#/components/schemas/BaseResponse" },
-          { "properties": { "data": { "type": "object", "nullable": true, "properties": { "username": { "type": "string" }, "userPermission": { "$ref": "#/components/schemas/UserPermission" } } } } }
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": { "type": "integer" },
+                  "username": { "type": "string" },
+                  "userPermission": { "$ref": "#/components/schemas/UserPermission" }
+                }
+              }
+            }
+          }
         ]
       },
       "AuthDeleteUserResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "nullable": true, "type": "object" } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "nullable": true, "type": "object" } } }
+        ]
       },
       "LoginRequest": {
         "type": "object",
@@ -917,15 +936,24 @@
       },
       "PatientDetailResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "$ref": "#/components/schemas/PatientListItem" } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "$ref": "#/components/schemas/PatientListItem" } } }
+        ]
       },
       "PatientUpdateResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "type": "object", "nullable": true } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "type": "object", "nullable": true } } }
+        ]
       },
       "PatientDeleteResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "nullable": true, "type": "object" } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "nullable": true, "type": "object" } } }
+        ]
       },
       "PatientGroupsResponse": {
         "type": "object",
@@ -982,10 +1010,7 @@
           "fileType": { "type": "string" },
           "description": { "type": "string" },
           "metadata": {
-            "oneOf": [
-              { "type": "object", "additionalProperties": true },
-              { "type": "string" }
-            ],
+            "oneOf": [{ "type": "object", "additionalProperties": true }, { "type": "string" }],
             "description": "文件元数据，可能为对象或 JSON 字符串"
           },
           "downloadCount": { "type": "integer" },
@@ -997,7 +1022,10 @@
       },
       "FileUploadResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "$ref": "#/components/schemas/FileInfo" } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "$ref": "#/components/schemas/FileInfo" } } }
+        ]
       },
       "FileDownloadSuccess": {
         "type": "string",
@@ -1006,7 +1034,10 @@
       },
       "FileDownloadError": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "type": "object", "nullable": true } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "type": "object", "nullable": true } } }
+        ]
       },
       "FileListResponse": {
         "type": "object",
@@ -1045,7 +1076,11 @@
               "data": {
                 "type": "object",
                 "properties": {
-                  "preview": { "type": "array", "nullable": true, "items": { "type": "object", "additionalProperties": true } },
+                  "preview": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": { "type": "object", "additionalProperties": true }
+                  },
                   "totalRows": { "type": "integer" },
                   "fileType": { "type": "string" },
                   "source": { "type": "string" },
@@ -1085,7 +1120,10 @@
       },
       "FileDeleteResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "type": "object", "nullable": true } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "type": "object", "nullable": true } } }
+        ]
       },
       "AuthorizeDownloadResponse": {
         "type": "object",
@@ -1107,7 +1145,14 @@
       },
       "HealthResponse": {
         "type": "object",
-        "allOf": [ { "$ref": "#/components/schemas/BaseResponse" }, { "properties": { "data": { "type": "object", "properties": { "timestamp": { "type": "string", "format": "date-time" } } } } } ]
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "properties": {
+              "data": { "type": "object", "properties": { "timestamp": { "type": "string", "format": "date-time" } } }
+            }
+          }
+        ]
       },
       "UpdateProfileRequest": {
         "type": "object",
@@ -1231,7 +1276,10 @@
           "limit": { "type": "integer", "default": 20 },
           "username": { "type": "string", "description": "按用户名模糊搜索" },
           "department": { "type": "string", "description": "按科室/部门模糊搜索" },
-          "userPermission": { "$ref": "#/components/schemas/UserPermission", "description": "按权限精确匹配（例如：超级管理员/管理员/访客）" }
+          "userPermission": {
+            "$ref": "#/components/schemas/UserPermission",
+            "description": "按权限精确匹配（例如：超级管理员/管理员/访客）"
+          }
         }
       },
       "PatientListItem": {

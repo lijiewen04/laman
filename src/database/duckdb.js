@@ -163,6 +163,22 @@ class Database {
     const rows = await this.all(sql, params);
     return rows && rows.length > 0 ? rows[0] : null;
   }
+
+  // 优雅关闭：关闭 connection 和 instance（如果可用）
+  async close() {
+    try {
+      if (this.connection && typeof this.connection.close === "function") {
+        await this.connection.close();
+      }
+      if (this.instance && typeof this.instance.close === "function") {
+        await this.instance.close();
+      }
+      console.log("DuckDB 连接已关闭");
+    } catch (err) {
+      console.error("关闭 DuckDB 时出错:", err);
+      throw err;
+    }
+  }
 }
 
 // 创建单例实例
@@ -189,3 +205,10 @@ try {
 }
 
 export default database;
+
+// 导出一个便捷方法以便外部优雅关闭数据库
+export async function closeDatabase() {
+  if (database && typeof database.close === "function") {
+    return database.close();
+  }
+}
