@@ -159,55 +159,51 @@ class PatientService {
 
   // 更新病人信息
   async updatePatient(id, updateData) {
-    const {
-      abbr,
-      time,
-      name,
-      serialNo,
-      inpatientOutpatient,
-      group,
-      gender,
-      age,
-      caseNo,
-      diagnosis,
-      isTested,
-      tStage,
-      nStage,
-      mStage,
-      stage,
-      preTreatment,
-      treatmentType,
-      memo,
-    } = updateData;
+    // 只更新请求中明确提供的字段，未提供的字段保持不变（即不写入 NULL）
+    const fieldsMap = {
+      abbr: "abbr",
+      time: "time",
+      name: "name",
+      serialNo: "serialNo",
+      inpatientOutpatient: "inpatientOutpatient",
+      group: '"group"',
+      gender: "gender",
+      age: "age",
+      caseNo: "caseNo",
+      diagnosis: "diagnosis",
+      isTested: "isTested",
+      tStage: "tStage",
+      nStage: "nStage",
+      mStage: "mStage",
+      stage: "stage",
+      preTreatment: "preTreatment",
+      treatmentType: "treatmentType",
+      memo: "memo",
+    };
 
-    await db.run(
-      `UPDATE patients SET 
-        abbr = ?, time = ?, name = ?, serialNo = ?, inpatientOutpatient = ?, "group" = ?,
-        gender = ?, age = ?, caseNo = ?, diagnosis = ?, isTested = ?, tStage = ?, nStage = ?,
-        mStage = ?, stage = ?, preTreatment = ?, treatmentType = ?, memo = ?, updatedAt = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        abbr,
-        time,
-        name,
-        serialNo,
-        inpatientOutpatient,
-        group,
-        gender,
-        age,
-        caseNo,
-        diagnosis,
-        isTested,
-        tStage,
-        nStage,
-        mStage,
-        stage,
-        preTreatment,
-        treatmentType,
-        memo,
-        id,
-      ].map((v) => (v === undefined ? null : v))
-    );
+    const setClauses = [];
+    const params = [];
+
+    for (const [key, col] of Object.entries(fieldsMap)) {
+      if (Object.prototype.hasOwnProperty.call(updateData, key)) {
+        setClauses.push(`${col} = ?`);
+        const v = updateData[key];
+        params.push(v === undefined ? null : v);
+      }
+    }
+
+    if (setClauses.length === 0) {
+      // 没有要更新的字段，直接返回当前数据
+      return await this.getPatientById(id);
+    }
+
+    // 添加更新时间
+    setClauses.push("updatedAt = CURRENT_TIMESTAMP");
+
+    const sql = `UPDATE patients SET ${setClauses.join(", ")} WHERE id = ?`;
+    params.push(id);
+
+    await db.run(sql, params);
 
     return await this.getPatientById(id);
   }

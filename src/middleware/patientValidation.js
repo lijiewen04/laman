@@ -32,8 +32,8 @@ export const validatePatientCreate = (req, res, next) => {
     return res.json(createResponse(4006, "年龄必须在0-150之间"));
   }
 
-  if (req.body.gender && !["男", "女"].includes(req.body.gender)) {
-    return res.json(createResponse(4007, '性别必须为"男"或"女"'));
+  if (req.body.gender && !["男", "女", "未知", "其他"].includes(req.body.gender)) {
+    return res.json(createResponse(4007, '性别必须为"男"、"女"、"未知"或"其他"'));
   }
 
   if (
