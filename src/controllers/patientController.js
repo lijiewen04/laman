@@ -67,10 +67,10 @@ export const getPatientList = async (req, res) => {
     if (nStage) filter.nStage = nStage;
     if (mStage) filter.mStage = mStage;
     if (stage) filter.stage = stage;
-    if (preTreatment) filter.preTreatment = preTreatment;
     if (treatmentType) filter.treatmentType = treatmentType;
     if (memo) filter.memo = memo;
     if (createdBy !== undefined) filter.createdBy = createdBy;
+
     // 解析时间范围：支持数字时间戳或可解析的时间字符串
     function parseToTimestamp(v) {
       if (v === undefined || v === null || v === "") return undefined;
@@ -94,9 +94,33 @@ export const getPatientList = async (req, res) => {
       throw new Error(`不支持的时间类型: ${typeof v}`);
     }
 
+    // 解析布尔型输入（支持 true/false, 1/0, 'yes'/'no' 等）
+    function parseToBoolean(v) {
+      if (v === undefined || v === null || v === "") return undefined;
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v === 1;
+      if (typeof v === "string") {
+        const s = v.trim().toLowerCase();
+        if (["1", "true", "t", "yes", "y"].includes(s)) return true;
+        if (["0", "false", "f", "no", "n"].includes(s)) return false;
+        throw new Error(`无法解析布尔值: ${v}`);
+      }
+      throw new Error(`不支持的布尔类型: ${typeof v}`);
+    }
+
     try {
       if (timeStart) filter.timeStart = parseToTimestamp(timeStart);
       if (timeEnd) filter.timeEnd = parseToTimestamp(timeEnd);
+
+      // 解析 preTreatment（如果请求中提供）
+      if (preTreatment !== undefined) {
+        try {
+          const pb = parseToBoolean(preTreatment);
+          if (pb !== undefined) filter.preTreatment = pb;
+        } catch (e) {
+          return res.json(createResponse(4009, "preTreatment 格式无效，请使用 true/false 或可解析的字符串/数字"));
+        }
+      }
     } catch (e) {
       console.warn("时间解析错误:", e.message);
       return res.json(createResponse(4009, "时间格式无效，请使用可解析的时间字符串或时间戳"));
@@ -126,7 +150,7 @@ export const getPatientList = async (req, res) => {
       nStage: patient.nStage || undefined,
       mStage: patient.mStage || undefined,
       stage: patient.stage || undefined,
-      preTreatment: patient.preTreatment,
+      preTreatment: patient.preTreatment === null || patient.preTreatment === undefined ? undefined : !!patient.preTreatment,
       treatmentType: patient.treatmentType || undefined,
       memo: patient.memo,
     }));
@@ -186,7 +210,7 @@ export const getPatientDetail = async (req, res) => {
       nStage: patient.nStage || undefined,
       mStage: patient.mStage || undefined,
       stage: patient.stage || undefined,
-      preTreatment: patient.preTreatment,
+      preTreatment: patient.preTreatment === null || patient.preTreatment === undefined ? undefined : !!patient.preTreatment,
       treatmentType: patient.treatmentType || undefined,
       memo: patient.memo,
     };
@@ -246,7 +270,7 @@ export const updatePatient = async (req, res) => {
       nStage: updatedPatient.nStage || undefined,
       mStage: updatedPatient.mStage || undefined,
       stage: updatedPatient.stage || undefined,
-      preTreatment: updatedPatient.preTreatment,
+      preTreatment: updatedPatient.preTreatment === null || updatedPatient.preTreatment === undefined ? undefined : !!updatedPatient.preTreatment,
       treatmentType: updatedPatient.treatmentType || undefined,
       memo: updatedPatient.memo,
     };
@@ -287,24 +311,11 @@ export const deletePatient = async (req, res) => {
 
 export const getGroups = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.body;
     const groups = await patientService.getGroups();
-
-    const total = Array.isArray(groups) ? groups.length : 0;
-    const p = Number(page);
-    const l = Number(limit);
-    const start = (p - 1) * l;
-    const items = Array.isArray(groups) ? groups.slice(start, start + l) : [];
 
     res.json(
       createResponse(0, "获取分组列表成功", {
-        items,
-        pagination: {
-          page: p,
-          limit: l,
-          total,
-          totalPages: Math.ceil(total / l),
-        },
+        groups,
       })
     );
   } catch (error) {

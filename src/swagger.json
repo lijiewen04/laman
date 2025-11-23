@@ -964,16 +964,7 @@
               "data": {
                 "type": "object",
                 "properties": {
-                  "items": { "type": "array", "items": { "type": "string" } },
-                  "pagination": {
-                    "type": "object",
-                    "properties": {
-                      "page": { "type": "integer" },
-                      "limit": { "type": "integer" },
-                      "total": { "type": "integer" },
-                      "totalPages": { "type": "integer" }
-                    }
-                  }
+                  "groups": { "type": "array", "items": { "type": "string" } }
                 }
               }
             }
@@ -1324,7 +1315,8 @@
             "type": "string"
           },
           "group": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "gender": {
             "type": "string"
@@ -1342,25 +1334,31 @@
             "type": "boolean"
           },
           "tStage": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "nStage": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "mStage": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "stage": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "preTreatment": {
-            "type": "string"
+            "type": "boolean"
           },
           "treatmentType": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "memo": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       },

@@ -36,13 +36,17 @@ export const validatePatientCreate = (req, res, next) => {
     return res.json(createResponse(4007, '性别必须为"男"、"女"、"未知"或"其他"'));
   }
 
-  if (
-    req.body.preTreatment !== undefined &&
-    typeof req.body.preTreatment !== "boolean"
-  ) {
-    return res.json(
-      createResponse(4008, "采样前是否接受治疗必须为布尔值 (true 或 false)")
-    );
+  if (req.body.preTreatment !== undefined) {
+    const v = req.body.preTreatment;
+    const ok =
+      typeof v === "boolean" ||
+      (typeof v === "number" && (v === 0 || v === 1)) ||
+      (typeof v === "string" && ["0", "1", "true", "false", "t", "f", "yes", "no", "y", "n"].includes(v.trim().toLowerCase()));
+    if (!ok) {
+      return res.json(
+        createResponse(4008, "采样前是否接受治疗必须为布尔值或可解析的 true/false/0/1")
+      );
+    }
   }
 
   next();
@@ -91,17 +95,21 @@ export const validatePatientUpdate = (req, res, next) => {
     return res.json(createResponse(4006, "年龄必须在0-150之间"));
   }
 
-  if (req.body.gender && !["男", "女"].includes(req.body.gender)) {
-    return res.json(createResponse(4007, '性别必须为"男"或"女"'));
+  if (req.body.gender && !["男", "女", "未知", "其他"].includes(req.body.gender)) {
+    return res.json(createResponse(4007, '性别必须为"男"、"女"、"未知"或"其他"'));
   }
 
-  if (
-    req.body.preTreatment !== undefined &&
-    typeof req.body.preTreatment !== "boolean"
-  ) {
-    return res.json(
-      createResponse(4008, "采样前是否接受治疗必须为布尔值 (true 或 false)")
-    );
+  if (req.body.preTreatment !== undefined) {
+    const v = req.body.preTreatment;
+    const ok =
+      typeof v === "boolean" ||
+      (typeof v === "number" && (v === 0 || v === 1)) ||
+      (typeof v === "string" && ["0", "1", "true", "false", "t", "f", "yes", "no", "y", "n"].includes(v.trim().toLowerCase()));
+    if (!ok) {
+      return res.json(
+        createResponse(4008, "采样前是否接受治疗必须为布尔值或可解析的 true/false/0/1")
+      );
+    }
   }
 
   next();

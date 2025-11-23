@@ -1,6 +1,20 @@
 import db from "../database/duckdb.js";
 
 class PatientService {
+  // 辅助：把可能的字符串/数字/布尔值解析成布尔或 null
+  toBoolean(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v === 1 || v === 1.0;
+    if (typeof v === "string") {
+      const s = v.trim().toLowerCase();
+      if (["1", "true", "t", "yes", "y"].includes(s)) return true;
+      if (["0", "false", "f", "no", "n"].includes(s)) return false;
+      return null;
+    }
+    return null;
+  }
+
   // 创建病人
   async createPatient(patientData, createdBy) {
     const {
@@ -19,10 +33,12 @@ class PatientService {
       nStage,
       mStage,
       stage,
-      preTreatment,
+      preTreatment: preTreatmentRaw,
       treatmentType,
       memo,
     } = patientData;
+
+    const preTreatment = this.toBoolean(preTreatmentRaw);
 
     const inserted = await db.get(
       `INSERT INTO patients (
@@ -190,9 +206,9 @@ class PatientService {
       paramIndex++;
     }
 
-    if (filter.preTreatment) {
-      whereClause += ` AND preTreatment LIKE ?`;
-      params.push(`%${filter.preTreatment}%`);
+    if (filter.preTreatment !== undefined && filter.preTreatment !== null) {
+      whereClause += ` AND preTreatment = ?`;
+      params.push(filter.preTreatment);
       paramIndex++;
     }
 
@@ -278,7 +294,12 @@ class PatientService {
       if (Object.prototype.hasOwnProperty.call(updateData, key)) {
         setClauses.push(`${col} = ?`);
         const v = updateData[key];
-        params.push(v === undefined ? null : v);
+        if (key === "preTreatment") {
+          const bv = this.toBoolean(v);
+          params.push(bv === null ? null : bv);
+        } else {
+          params.push(v === undefined ? null : v);
+        }
       }
     }
 
