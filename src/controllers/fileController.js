@@ -243,15 +243,29 @@ export const getFileList = async (req, res) => {
       limit = 20,
       fileType,
       uploadedBy,
+      uploadedById,
       filename,
       originalName,
+      mimeType,
+      minSize,
+      maxSize,
+      description,
+      createdAtStart,
+      createdAtEnd,
     } = req.body;
 
     const filter = {};
     if (fileType) filter.fileType = fileType;
     if (uploadedBy) filter.uploadedBy = uploadedBy;
+    if (uploadedById !== undefined) filter.uploadedById = uploadedById;
     if (filename) filter.filename = filename;
     if (originalName) filter.originalName = originalName;
+    if (mimeType) filter.mimeType = mimeType;
+    if (minSize !== undefined) filter.minSize = Number(minSize);
+    if (maxSize !== undefined) filter.maxSize = Number(maxSize);
+    if (description) filter.description = description;
+    if (createdAtStart) filter.createdAtStart = createdAtStart;
+    if (createdAtEnd) filter.createdAtEnd = createdAtEnd;
 
     const result = await fileService.getFiles(
       filter,

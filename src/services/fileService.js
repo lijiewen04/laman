@@ -128,6 +128,11 @@ class FileService {
       params.push(`%${filter.uploadedBy}%`);
     }
 
+    if (filter.uploadedById !== undefined) {
+      whereClause += ` AND f.uploaded_by = ?`;
+      params.push(Number(filter.uploadedById));
+    }
+
     if (filter.filename) {
       whereClause += ` AND f.filename LIKE ?`;
       params.push(`%${filter.filename}%`);
@@ -136,6 +141,36 @@ class FileService {
     if (filter.originalName) {
       whereClause += ` AND f.original_name LIKE ?`;
       params.push(`%${filter.originalName}%`);
+    }
+
+    if (filter.mimeType) {
+      whereClause += ` AND f.mime_type = ?`;
+      params.push(filter.mimeType);
+    }
+
+    if (filter.minSize !== undefined) {
+      whereClause += ` AND f.size >= ?`;
+      params.push(Number(filter.minSize));
+    }
+
+    if (filter.maxSize !== undefined) {
+      whereClause += ` AND f.size <= ?`;
+      params.push(Number(filter.maxSize));
+    }
+
+    if (filter.description) {
+      whereClause += ` AND f.description LIKE ?`;
+      params.push(`%${filter.description}%`);
+    }
+
+    if (filter.createdAtStart) {
+      whereClause += ` AND f.created_at >= ?`;
+      params.push(filter.createdAtStart);
+    }
+
+    if (filter.createdAtEnd) {
+      whereClause += ` AND f.created_at <= ?`;
+      params.push(filter.createdAtEnd);
     }
 
     // 计算分页

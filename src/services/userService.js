@@ -60,8 +60,16 @@ class UserService {
 
   // 获取用户列表，支持筛选与分页（推荐使用）
   async getUsers(filter = {}, page = 1, limit = 20) {
-    let whereClause = "WHERE is_active = true";
+    // 默认只返回激活用户；如果传入 filter.isActive 则使用其值
+    let whereClause = "WHERE 1=1";
     const params = [];
+
+    if (filter.isActive === undefined) {
+      whereClause += ` AND is_active = true`;
+    } else {
+      whereClause += ` AND is_active = ?`;
+      params.push(filter.isActive ? 1 : 0);
+    }
 
     if (filter.username) {
       whereClause += ` AND username LIKE ?`;
@@ -76,6 +84,21 @@ class UserService {
     if (filter.userPermission) {
       whereClause += ` AND user_permission = ?`;
       params.push(filter.userPermission);
+    }
+
+    if (filter.phone) {
+      whereClause += ` AND phone LIKE ?`;
+      params.push(`%${filter.phone}%`);
+    }
+
+    if (filter.createdAtStart) {
+      whereClause += ` AND created_at >= ?`;
+      params.push(filter.createdAtStart);
+    }
+
+    if (filter.createdAtEnd) {
+      whereClause += ` AND created_at <= ?`;
+      params.push(filter.createdAtEnd);
     }
 
     const offset = (page - 1) * limit;

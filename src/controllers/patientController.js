@@ -29,20 +29,78 @@ export const getPatientList = async (req, res) => {
       page = 1,
       limit = 20,
       name,
+      abbr,
       serialNo,
       inpatientOutpatient,
       isTested,
       diagnosis,
       group,
+      gender,
+      ageMin,
+      ageMax,
+      caseNo,
+      tStage,
+      nStage,
+      mStage,
+      stage,
+      preTreatment,
+      treatmentType,
+      memo,
+      createdBy,
+      timeStart,
+      timeEnd,
     } = req.body;
 
     const filter = {};
     if (name) filter.name = name;
+    if (abbr) filter.abbr = abbr;
     if (serialNo) filter.serialNo = serialNo;
     if (inpatientOutpatient) filter.inpatientOutpatient = inpatientOutpatient;
     if (isTested !== undefined) filter.isTested = isTested;
     if (diagnosis) filter.diagnosis = diagnosis;
     if (group) filter.group = group;
+    if (gender) filter.gender = gender;
+    if (ageMin !== undefined) filter.ageMin = Number(ageMin);
+    if (ageMax !== undefined) filter.ageMax = Number(ageMax);
+    if (caseNo) filter.caseNo = caseNo;
+    if (tStage) filter.tStage = tStage;
+    if (nStage) filter.nStage = nStage;
+    if (mStage) filter.mStage = mStage;
+    if (stage) filter.stage = stage;
+    if (preTreatment) filter.preTreatment = preTreatment;
+    if (treatmentType) filter.treatmentType = treatmentType;
+    if (memo) filter.memo = memo;
+    if (createdBy !== undefined) filter.createdBy = createdBy;
+    // 解析时间范围：支持数字时间戳或可解析的时间字符串
+    function parseToTimestamp(v) {
+      if (v === undefined || v === null || v === "") return undefined;
+      if (typeof v === "number" && !Number.isNaN(v)) return Number(v);
+      if (typeof v === "string") {
+        // 尝试直接解析
+        let t = Date.parse(v);
+        if (Number.isNaN(t)) {
+          // 尝试把空格替换为 'T'（常见的 'YYYY-MM-DD HH:MM:SS'）
+          t = Date.parse(v.replace(" ", "T"));
+        }
+        if (Number.isNaN(t)) {
+          // 尝试在末尾加 Z 作为 UTC 标记
+          t = Date.parse(v.replace(" ", "T") + "Z");
+        }
+        if (Number.isNaN(t)) {
+          throw new Error(`无法解析时间: ${v}`);
+        }
+        return Number(t);
+      }
+      throw new Error(`不支持的时间类型: ${typeof v}`);
+    }
+
+    try {
+      if (timeStart) filter.timeStart = parseToTimestamp(timeStart);
+      if (timeEnd) filter.timeEnd = parseToTimestamp(timeEnd);
+    } catch (e) {
+      console.warn("时间解析错误:", e.message);
+      return res.json(createResponse(4009, "时间格式无效，请使用可解析的时间字符串或时间戳"));
+    }
 
     const result = await patientService.getPatients(
       filter,
@@ -87,6 +145,11 @@ export const getPatientList = async (req, res) => {
     );
   } catch (error) {
     console.error("获取病人列表错误:", error);
+    const msg = String(error && error.message ? error.message : error);
+    // 如果是类型转换/解析导致的错误，返回 400x 系列的自定义错误码，便于前端区分
+    if (/convert|conversion|Could not convert|无法解析|invalid|类型/i.test(msg)) {
+      return res.json(createResponse(4009, "查询参数格式错误: " + msg));
+    }
     res.json(createResponse(5001, "服务器错误"));
   }
 };

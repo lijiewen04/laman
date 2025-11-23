@@ -112,12 +112,16 @@ export const getMe = async (req, res) => {
 
 export const getUserList = async (req, res) => {
   try {
-    const { page = 1, limit = 20, username, department, userPermission } = req.body;
+    const { page = 1, limit = 20, username, department, userPermission, phone, createdAtStart, createdAtEnd, isActive } = req.body;
 
     const filter = {};
     if (username) filter.username = username;
     if (department) filter.department = department;
     if (userPermission) filter.userPermission = userPermission;
+    if (phone) filter.phone = phone;
+    if (createdAtStart) filter.createdAtStart = createdAtStart;
+    if (createdAtEnd) filter.createdAtEnd = createdAtEnd;
+    if (isActive !== undefined) filter.isActive = Boolean(isActive);
 
     // 使用 service 层的 SQL 过滤与分页
     const result = await userService.getUsers(filter, Number(page), Number(limit));

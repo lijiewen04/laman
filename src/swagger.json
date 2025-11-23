@@ -1266,7 +1266,22 @@
           },
           "group": {
             "type": "string"
-          }
+          },
+          "abbr": { "type": "string" },
+          "gender": { "type": "string", "description": "男/女/未知/其他" },
+          "ageMin": { "type": "integer", "description": "年龄下限（包含）" },
+          "ageMax": { "type": "integer", "description": "年龄上限（包含）" },
+          "caseNo": { "type": "string" },
+          "tStage": { "type": "string" },
+          "nStage": { "type": "string" },
+          "mStage": { "type": "string" },
+          "stage": { "type": "string" },
+          "preTreatment": { "type": "boolean" },
+          "treatmentType": { "type": "string" },
+          "memo": { "type": "string" },
+          "createdBy": { "type": "integer", "description": "创建者用户ID" },
+          "timeStart": { "type": "string", "description": "起始时间（ISO 或 与数据库一致的格式）" },
+          "timeEnd": { "type": "string", "description": "结束时间（ISO 或 与数据库一致的格式）" }
         }
       },
       "AuthUserListQuery": {
@@ -1280,6 +1295,11 @@
             "$ref": "#/components/schemas/UserPermission",
             "description": "按权限精确匹配（例如：超级管理员/管理员/访客）"
           }
+          ,
+          "phone": { "type": "string", "description": "按电话号码模糊搜索" },
+          "createdAtStart": { "type": "string", "description": "创建时间起始（ISO）" },
+          "createdAtEnd": { "type": "string", "description": "创建时间结束（ISO）" },
+          "isActive": { "type": "boolean", "description": "是否只返回激活用户；未提供则默认为 true" }
         }
       },
       "PatientListItem": {
@@ -1456,6 +1476,13 @@
           "uploadedBy": {
             "type": "string"
           },
+          "uploadedById": { "type": "integer", "description": "按上传者用户ID过滤" },
+          "mimeType": { "type": "string" },
+          "minSize": { "type": "integer", "description": "最小文件大小（字节）" },
+          "maxSize": { "type": "integer", "description": "最大文件大小（字节）" },
+          "description": { "type": "string" },
+          "createdAtStart": { "type": "string", "description": "创建时间起始（ISO）" },
+          "createdAtEnd": { "type": "string", "description": "创建时间结束（ISO）" },
           "filename": {
             "type": "string"
           },

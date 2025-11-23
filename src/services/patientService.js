@@ -124,6 +124,96 @@ class PatientService {
       paramIndex++;
     }
 
+    if (filter.abbr) {
+      whereClause += ` AND abbr LIKE ?`;
+      params.push(`%${filter.abbr}%`);
+      paramIndex++;
+    }
+
+    if (filter.timeStart) {
+      whereClause += ` AND time >= ?`;
+      params.push(filter.timeStart);
+      paramIndex++;
+    }
+
+    if (filter.timeEnd) {
+      whereClause += ` AND time <= ?`;
+      params.push(filter.timeEnd);
+      paramIndex++;
+    }
+
+    if (filter.gender) {
+      whereClause += ` AND gender = ?`;
+      params.push(filter.gender);
+      paramIndex++;
+    }
+
+    if (filter.ageMin !== undefined) {
+      whereClause += ` AND age >= ?`;
+      params.push(filter.ageMin);
+      paramIndex++;
+    }
+
+    if (filter.ageMax !== undefined) {
+      whereClause += ` AND age <= ?`;
+      params.push(filter.ageMax);
+      paramIndex++;
+    }
+
+    if (filter.caseNo) {
+      whereClause += ` AND caseNo LIKE ?`;
+      params.push(`%${filter.caseNo}%`);
+      paramIndex++;
+    }
+
+    if (filter.tStage) {
+      whereClause += ` AND tStage = ?`;
+      params.push(filter.tStage);
+      paramIndex++;
+    }
+
+    if (filter.nStage) {
+      whereClause += ` AND nStage = ?`;
+      params.push(filter.nStage);
+      paramIndex++;
+    }
+
+    if (filter.mStage) {
+      whereClause += ` AND mStage = ?`;
+      params.push(filter.mStage);
+      paramIndex++;
+    }
+
+    if (filter.stage) {
+      whereClause += ` AND stage = ?`;
+      params.push(filter.stage);
+      paramIndex++;
+    }
+
+    if (filter.preTreatment) {
+      whereClause += ` AND preTreatment LIKE ?`;
+      params.push(`%${filter.preTreatment}%`);
+      paramIndex++;
+    }
+
+    if (filter.treatmentType) {
+      whereClause += ` AND treatmentType = ?`;
+      params.push(filter.treatmentType);
+      paramIndex++;
+    }
+
+    if (filter.memo) {
+      whereClause += ` AND memo LIKE ?`;
+      params.push(`%${filter.memo}%`);
+      paramIndex++;
+    }
+
+    if (filter.createdBy !== undefined) {
+      whereClause += ` AND createdBy = ?`;
+      params.push(Number(filter.createdBy));
+      paramIndex++;
+    }
+
     // 计算分页
     const offset = (page - 1) * limit;
 
@@ -143,7 +233,7 @@ class PatientService {
         preTreatment, treatmentType, memo
        FROM patients 
        ${whereClause}
-       ORDER BY time DESC, id DESC
+       ORDER BY id ASC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
