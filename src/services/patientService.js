@@ -292,14 +292,9 @@ class PatientService {
 
     for (const [key, col] of Object.entries(fieldsMap)) {
       if (Object.prototype.hasOwnProperty.call(updateData, key)) {
-        setClauses.push(`${col} = ?`);
-        const v = updateData[key];
-        if (key === "preTreatment") {
-          const bv = this.toBoolean(v);
-          params.push(bv === null ? null : bv);
-        } else {
-          params.push(v === undefined ? null : v);
-        }
+      setClauses.push(`${col} = ?`);
+      const v = updateData[key];
+      params.push(v === undefined ? null : v);
       }
     }
 

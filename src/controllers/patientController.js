@@ -270,7 +270,7 @@ export const updatePatient = async (req, res) => {
       nStage: updatedPatient.nStage || undefined,
       mStage: updatedPatient.mStage || undefined,
       stage: updatedPatient.stage || undefined,
-      preTreatment: updatedPatient.preTreatment === null || updatedPatient.preTreatment === undefined ? undefined : !!updatedPatient.preTreatment,
+      preTreatment: updatedPatient.preTreatment,
       treatmentType: updatedPatient.treatmentType || undefined,
       memo: updatedPatient.memo,
     };
