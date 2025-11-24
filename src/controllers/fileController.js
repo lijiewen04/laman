@@ -10,8 +10,11 @@ export const uploadFile = async (req, res) => {
     if (!req.file) {
       return res.json(createResponse(4001, "请选择要上传的文件"));
     }
-
-    const { fileType = "其他", description = "" } = req.body;
+    const { fileType = "其他", description = "", patientId } = req.body;
+    // patientId 必填
+    if (patientId === undefined || patientId === null || isNaN(Number(patientId))) {
+      return res.json(createResponse(4001, "需要提供有效的 patientId"));
+    }
     const uploadedBy = req.user.id;
 
     // 根据文件扩展名确定文件类型
@@ -30,6 +33,7 @@ export const uploadFile = async (req, res) => {
         fileType: finalFileType,
         description,
         metadata,
+        patientId: Number(patientId),
       },
       uploadedBy
     );
@@ -70,6 +74,8 @@ export const uploadFile = async (req, res) => {
       fileType: fileRecord.fileType,
       description: fileRecord.description,
       metadata: fileRecord.metadata,
+      patientId: fileRecord.patientId,
+      patientName: fileRecord.patientName,
       downloadCount: fileRecord.downloadCount,
       createdAt: fileRecord.createdAt,
       uploadedBy: fileRecord.uploadedByUsername,
@@ -244,6 +250,7 @@ export const getFileList = async (req, res) => {
       fileType,
       uploadedBy,
       uploadedById,
+      patientId,
       filename,
       originalName,
       mimeType,
@@ -258,6 +265,7 @@ export const getFileList = async (req, res) => {
     if (fileType) filter.fileType = fileType;
     if (uploadedBy) filter.uploadedBy = uploadedBy;
     if (uploadedById !== undefined) filter.uploadedById = uploadedById;
+    if (patientId !== undefined) filter.patientId = patientId;
     if (filename) filter.filename = filename;
     if (originalName) filter.originalName = originalName;
     if (mimeType) filter.mimeType = mimeType;

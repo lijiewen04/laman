@@ -75,6 +75,7 @@ class Database {
          description TEXT,
          metadata TEXT, -- 存储JSON格式的元数据
          uploaded_by INTEGER,
+         patient_id INTEGER NOT NULL,
          download_count INTEGER DEFAULT 0,
          is_deleted BOOLEAN DEFAULT false,
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -116,6 +117,9 @@ class Database {
       );
       await this.run(
         "CREATE INDEX IF NOT EXISTS idx_files_uploaded_by ON files(uploaded_by)"
+      );
+      await this.run(
+        "CREATE INDEX IF NOT EXISTS idx_files_patient_id ON files(patient_id)"
       );
       await this.run(
         "CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at)"

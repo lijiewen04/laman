@@ -472,6 +472,10 @@
                     "format": "binary",
                     "example": ""
                   },
+                  "patientId": {
+                    "type": "integer",
+                    "description": "关联的病人 ID，必填"
+                  },
                   "fileType": {
                     "type": "string",
                     "example": ""
@@ -481,7 +485,7 @@
                     "example": ""
                   }
                 },
-                "required": ["file"]
+                "required": ["file", "patientId"]
               }
             }
           },
@@ -1004,6 +1008,8 @@
             "oneOf": [{ "type": "object", "additionalProperties": true }, { "type": "string" }],
             "description": "文件元数据，可能为对象或 JSON 字符串"
           },
+          "patientId": { "type": "integer" },
+          "patientName": { "type": "string" },
           "downloadCount": { "type": "integer" },
           "createdAt": { "type": "string", "format": "date-time" },
           "uploadedBy": { "type": "integer" },
@@ -1439,6 +1445,7 @@
             "type": "string",
             "format": "binary"
           },
+          "patientId": { "type": "integer", "description": "关联的病人 ID" },
           "fileType": {
             "type": "string"
           },
@@ -1446,7 +1453,7 @@
             "type": "string"
           }
         },
-        "required": ["file"]
+        "required": ["file", "patientId"]
       },
       "DownloadRequest": {
         "type": "object",
@@ -1468,6 +1475,7 @@
             "type": "integer",
             "default": 20
           },
+          "patientId": { "type": "integer", "description": "按病人 ID 过滤" },
           "fileType": {
             "type": "string"
           },

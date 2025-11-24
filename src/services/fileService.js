@@ -33,12 +33,18 @@ class FileService {
       fileType = "其他",
       description = "",
       metadata = {},
+      patientId,
     } = fileData;
+
+    // patientId 必填
+    if (patientId === undefined || patientId === null || isNaN(Number(patientId))) {
+      throw new Error("需要提供有效的 patientId");
+    }
 
     const inserted = await db.get(
       `INSERT INTO files (
-        filename, original_name, mime_type, size, file_path, file_type, description, metadata, uploaded_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+        filename, original_name, mime_type, size, file_path, file_type, description, metadata, uploaded_by, patient_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [
         filename,
         originalname,
@@ -49,6 +55,7 @@ class FileService {
         description,
         JSON.stringify(metadata),
         uploadedBy,
+        Number(patientId),
       ]
     );
 
@@ -91,11 +98,12 @@ class FileService {
       `SELECT 
         f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
         f.size, f.file_path as filePath, f.file_type as fileType, f.description, 
-        f.metadata, f.uploaded_by as uploadedBy,
+        f.metadata, f.uploaded_by as uploadedBy, f.patient_id as patientId,
         f.download_count as downloadCount, f.created_at as createdAt,
-        u.username as uploadedByUsername
+        u.username as uploadedByUsername, p.name as patientName
        FROM files f
        LEFT JOIN users u ON f.uploaded_by = u.id
+       LEFT JOIN patients p ON f.patient_id = p.id
        WHERE f.id = ? AND f.is_deleted = false`,
       [id]
     );
@@ -131,6 +139,11 @@ class FileService {
     if (filter.uploadedById !== undefined) {
       whereClause += ` AND f.uploaded_by = ?`;
       params.push(Number(filter.uploadedById));
+    }
+
+    if (filter.patientId !== undefined) {
+      whereClause += ` AND f.patient_id = ?`;
+      params.push(Number(filter.patientId));
     }
 
     if (filter.filename) {
@@ -180,6 +193,7 @@ class FileService {
     const countResult = await db.get(
       `SELECT COUNT(*) as total FROM files f 
        LEFT JOIN users u ON f.uploaded_by = u.id 
+       LEFT JOIN patients p ON f.patient_id = p.id 
        ${whereClause}`,
       params
     );
@@ -190,9 +204,10 @@ class FileService {
       f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
       f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
       f.download_count as downloadCount, f.created_at as createdAt,
-      f.uploaded_by as uploadedBy, u.username as uploadedByUsername
+      f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.name as patientName
        FROM files f
        LEFT JOIN users u ON f.uploaded_by = u.id
+       LEFT JOIN patients p ON f.patient_id = p.id
        ${whereClause}
        ORDER BY f.created_at DESC
        LIMIT ? OFFSET ?`,
