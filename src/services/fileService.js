@@ -184,13 +184,13 @@ class FileService {
       params
     );
 
-    // 获取数据
+    // 获取数据（保留 uploaded_by ID 和 uploadedByUsername）
     let files = await db.all(
       `SELECT 
-        f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
-        f.size, f.file_type as fileType, f.description, f.metadata,
-        f.download_count as downloadCount, f.created_at as createdAt, 
-        u.username as uploadedByUsername
+      f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
+      f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
+      f.download_count as downloadCount, f.created_at as createdAt,
+      f.uploaded_by as uploadedBy, u.username as uploadedByUsername
        FROM files f
        LEFT JOIN users u ON f.uploaded_by = u.id
        ${whereClause}
@@ -198,15 +198,16 @@ class FileService {
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
+
     // 规范化 BigInt，并解析 metadata JSON
     files = files.map((file) => {
       const normalized = this.normalizeRow(file);
       if (normalized.metadata) {
-        try {
-          normalized.metadata = JSON.parse(normalized.metadata);
-        } catch (e) {
-          // keep as string
-        }
+      try {
+        normalized.metadata = JSON.parse(normalized.metadata);
+      } catch (e) {
+        // keep as string
+      }
       }
       return normalized;
     });
