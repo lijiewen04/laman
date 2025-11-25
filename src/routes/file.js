@@ -6,6 +6,7 @@ import {
   downloadFile,
   getFileList,
   getFilePreview,
+  getFileWithPatientDetail,
   deleteFile,
   getFileTypes,
   authorizeDownload,
@@ -64,6 +65,9 @@ router.post("/list", getFileList);
 
 // 获取文件预览（所有登录用户都可访问）
 router.post("/preview", getFilePreview);
+
+// 根据文件 id 获取文件信息及对应病人详情
+router.post("/detail", getFileWithPatientDetail);
 
 // 获取文件类型列表（所有登录用户都可访问）
 router.post("/types", getFileTypes);

@@ -1,4 +1,5 @@
 import fileService from "../services/fileService.js";
+import patientService from "../services/patientService.js";
 import { createResponse } from "../middleware/auth.js";
 import fs from "fs";
 import path from "path";
@@ -247,6 +248,69 @@ export const getFilePreview = async (req, res) => {
   } catch (error) {
     console.error("获取文件预览错误:", error);
     res.json(createResponse(5001, error.message));
+  }
+};
+
+// 根据 file id 返回文件信息以及对应的病人详情（与 /api/patient/detail 返回格式一致）
+export const getFileWithPatientDetail = async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.json(createResponse(4001, "文件ID不能为空"));
+    }
+
+    const fileRecord = await fileService.getFileById(id);
+
+    if (!fileRecord) {
+      return res.json(createResponse(4002, "文件不存在"));
+    }
+
+    // 获取病人信息（file 表包含 patient_id 字段）
+    const patientId = fileRecord.patientId;
+    if (!patientId) {
+      return res.json(createResponse(4002, "文件未关联病人"));
+    }
+
+    const patient = await patientService.getPatientById(patientId);
+
+    if (!patient) {
+      return res.json(createResponse(4002, "病人不存在"));
+    }
+
+    // 按照 /api/patient/detail 的返回结构格式化病人信息
+    const patientDetail = {
+      id: patient.id,
+      abbr: patient.abbr,
+      time: patient.time,
+      name: patient.name,
+      serialNo: patient.serialNo,
+      inpatientOutpatient: patient.inpatientOutpatient,
+      group: patient.group,
+      gender: patient.gender,
+      age: patient.age,
+      caseNo: patient.caseNo,
+      diagnosis: patient.diagnosis,
+      isTested: patient.isTested,
+      tStage: patient.tStage || undefined,
+      nStage: patient.nStage || undefined,
+      mStage: patient.mStage || undefined,
+      stage: patient.stage || undefined,
+      preTreatment: patient.preTreatment === null || patient.preTreatment === undefined ? undefined : !!patient.preTreatment,
+      treatmentType: patient.treatmentType || undefined,
+      memo: patient.memo,
+    };
+
+    // 返回文件信息和病人详情
+    res.json(
+      createResponse(0, "获取文件及病人详情成功", {
+        file: fileRecord,
+        patient: patientDetail,
+      })
+    );
+  } catch (error) {
+    console.error("获取文件及病人详情错误:", error);
+    res.json(createResponse(5001, "服务器错误"));
   }
 };
 

@@ -609,6 +609,35 @@
         "security": [{ "bearerAuth": [] }]
       }
     },
+    "/api/file/detail": {
+      "post": {
+        "summary": "根据文件 id 获取文件信息及对应病人详情",
+        "deprecated": false,
+        "description": "请求体: { id }，返回 data: { file: FileInfo, patient: PatientListItem }",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DownloadRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "文件信息与病人详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FileWithPatientResponse" }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
+    },
     "/api/file/types": {
       "post": {
         "summary": "获取文件类型列表",
@@ -1022,6 +1051,23 @@
         "allOf": [
           { "$ref": "#/components/schemas/BaseResponse" },
           { "properties": { "data": { "$ref": "#/components/schemas/FileInfo" } } }
+        ]
+      },
+      "FileWithPatientResponse": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "file": { "$ref": "#/components/schemas/FileInfo" },
+                  "patient": { "$ref": "#/components/schemas/PatientListItem" }
+                }
+              }
+            }
+          }
         ]
       },
       "FileDownloadSuccess": {
