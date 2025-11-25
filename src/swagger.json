@@ -20,37 +20,91 @@
     }
   ],
   "paths": {
-    "/api/auth/register": {
+    "/api/auth/create-user": {
       "post": {
-        "summary": "用户注册",
+        "summary": "超级管理员创建用户",
         "deprecated": false,
-        "description": "",
+        "description": "仅超级管理员可用。请求体含 username, optional password, userPermission, department, phone。返回新建用户信息及明文密码（仅返回一次）。",
         "tags": ["Auth", "Auth"],
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
             }
           },
           "required": true
         },
         "responses": {
           "200": {
-            "description": "标准响应",
+            "description": "创建结果",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthRegisterResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/CreateUserResponse" }
               }
             },
             "headers": {}
           }
         },
-        "security": []
+        "security": [{ "bearerAuth": [] }]
+      }
+    },
+    "/api/auth/admin-update-user": {
+      "post": {
+        "summary": "超级管理员修改用户资料",
+        "deprecated": false,
+        "description": "仅超级管理员可用。请求体含 id 和要更新的字段（username/userPermission/department/phone）。",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminUpdateUserRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "更新结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminUpdateUserResponse" }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "超级管理员重置用户密码（随机生成）",
+        "deprecated": false,
+        "description": "仅超级管理员可用。请求体 { id }，返回新的临时密码（明文，仅显示一次）",
+        "tags": ["Auth", "Auth"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "重置结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ResetPasswordResponse" }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
       }
     },
     "/api/auth/login": {
@@ -1581,6 +1635,55 @@
           }
         },
         "required": ["fileId", "userId"]
+      }
+      ,
+      "CreateUserRequest": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string", "description": "可选，不提供则自动生成" },
+          "userPermission": { "type": "string", "description": "访客/用户/管理员/超级管理员" },
+          "department": { "type": "string" },
+          "phone": { "type": "string" }
+        },
+        "required": ["username"]
+      },
+      "CreateUserResponse": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "type": "object", "properties": { "user": { "$ref": "#/components/schemas/AuthMeResponse" }, "password": { "type": "string" } } } } }
+        ]
+      },
+      "AdminUpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "userPermission": { "type": "string" },
+          "department": { "type": "string" },
+          "phone": { "type": "string" }
+        },
+        "required": ["id"]
+      },
+      "AdminUpdateUserResponse": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "type": "object", "properties": { "id": { "type": "integer" }, "username": { "type": "string" }, "userPermission": { "type": "string" }, "department": { "type": "string" }, "phone": { "type": "string" } } } } }
+        ]
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "properties": { "id": { "type": "integer" } },
+        "required": ["id"]
+      },
+      "ResetPasswordResponse": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "properties": { "data": { "type": "object", "properties": { "id": { "type": "integer" }, "username": { "type": "string" }, "newPassword": { "type": "string" } } } } }
+        ]
       }
     },
     "securitySchemes": {

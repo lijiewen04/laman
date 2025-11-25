@@ -1,6 +1,7 @@
 import userService from "../services/userService.js";
 import jwt from "jsonwebtoken";
 import { createResponse } from "../middleware/auth.js";
+import crypto from "crypto";
 
 // 生成JWT令牌
 const generateToken = (id) => {
@@ -9,52 +10,94 @@ const generateToken = (id) => {
   });
 };
 
-export const register = async (req, res) => {
+// 注意: 注册接口已移除，注册功能仅由超级管理员通过 /api/auth/create-user 创建
+
+// 管理员创建用户（仅超级管理员可调用）
+export const createUserByAdmin = async (req, res) => {
   try {
-    const {
-      username,
-      password,
-      department,
-      phone,
-    } = req.body;
+    const { username, password, userPermission = "访客", department, phone } = req.body;
 
-    // 注册时不允许客户端指定权限，默认设为 "访客"
-    const userPermission = "访客";
-    // 部门默认值为 "访客"（如果没有传入）
-    const userDepartment = department || "访客";
+    if (!username) return res.json(createResponse(4001, "用户名不能为空"));
 
-    // 检查用户是否已存在
-    const userExists = await userService.checkUserExists(username);
-
-    if (userExists) {
-      return res.json(createResponse(3001, "用户名已存在"));
+    if (!["超级管理员", "管理员", "用户", "访客"].includes(userPermission)) {
+      return res.json(createResponse(4002, "权限类型无效"));
     }
 
-    // 创建用户
+    const exists = await userService.checkUserExists(username);
+    if (exists) return res.json(createResponse(3001, "用户名已存在"));
+
+    // 如果密码未提供，生成一个安全随机密码并返回给管理员
+    let generatedPassword = password;
+    if (!generatedPassword) {
+      generatedPassword = crypto.randomBytes(6).toString("hex"); // 12 chars
+    }
+
     const user = await userService.createUser({
       username,
-      password,
+      password: generatedPassword,
       userPermission,
-      department: userDepartment,
+      department,
       phone,
     });
 
-    // 生成令牌
-    const token = generateToken(user.id);
-
-    res.json(
-      createResponse(0, "用户注册成功", {
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          userPermission: user.userPermission,
-        },
-      })
-    );
+    res.json(createResponse(0, "用户创建成功", { user: { id: user.id, username: user.username, userPermission: user.userPermission, department: user.department, phone: user.phone }, password: generatedPassword }));
   } catch (error) {
-    console.error("注册错误:", error);
-    res.json(createResponse(5001, "服务器错误，请稍后重试"));
+    console.error("管理员创建用户错误:", error);
+    res.json(createResponse(5001, "服务器错误"));
+  }
+};
+
+// 管理员更新指定用户信息（仅超级管理员可调用）
+export const adminUpdateUser = async (req, res) => {
+  try {
+    const { id, username, userPermission, department, phone } = req.body;
+
+    if (!id) return res.json(createResponse(4001, "用户ID不能为空"));
+
+    const user = await userService.getUserById(id);
+    if (!user) return res.json(createResponse(4003, "用户不存在"));
+
+    if (username && username !== user.username) {
+      const existing = await userService.getUserByUsername(username);
+      if (existing && existing.id !== id) return res.json(createResponse(3004, "用户名已被使用"));
+    }
+
+    if (userPermission !== undefined && !["超级管理员", "管理员", "用户", "访客"].includes(userPermission)) {
+      return res.json(createResponse(4002, "权限类型无效"));
+    }
+
+    const updateData = {};
+    if (username !== undefined) updateData.username = username;
+    if (userPermission !== undefined) updateData.userPermission = userPermission;
+    if (department !== undefined) updateData.department = department;
+    if (phone !== undefined) updateData.phone = phone;
+
+    const updated = await userService.updateUser(id, updateData);
+
+    res.json(createResponse(0, "用户更新成功", { id: updated.id, username: updated.username, userPermission: updated.userPermission, department: updated.department, phone: updated.phone }));
+  } catch (error) {
+    console.error("管理员更新用户错误:", error);
+    res.json(createResponse(5001, "服务器错误"));
+  }
+};
+
+// 管理员重置用户密码（随机生成并返回新密码），仅超级管理员可调用
+export const adminResetPassword = async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.json(createResponse(4001, "用户ID不能为空"));
+
+    const user = await userService.getUserById(id);
+    if (!user) return res.json(createResponse(4003, "用户不存在"));
+
+    const newPassword = crypto.randomBytes(6).toString("hex");
+    await userService.setPasswordById(id, newPassword);
+
+    // 返回新密码给管理员（只在管理操作时返回）
+    res.json(createResponse(0, "重置密码成功", { id: user.id, username: user.username, newPassword }));
+  } catch (error) {
+    console.error("管理员重置密码错误:", error);
+    res.json(createResponse(5001, "服务器错误"));
   }
 };
 

@@ -212,6 +212,16 @@ class UserService {
     return result.changes > 0;
   }
 
+  // 按 id 设置用户密码（用于管理员重置密码）
+  async setPasswordById(id, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await db.run(
+      `UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [hashedPassword, id]
+    );
+    return await this.getUserById(id);
+  }
+
   // 统计用户在其他表中的引用，返回各表的计数
   async countUserReferences(id) {
     const refs = {};
