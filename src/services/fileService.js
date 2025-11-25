@@ -275,31 +275,6 @@ class FileService {
     });
   }
 
-  // 将 CSV 导入到 DuckDB，tableName 会被安全化为只包含字母数字下划线
-  async importCSVToDuckDB(filePath, tableName) {
-    try {
-      if (!filePath || !tableName) {
-        throw new Error("需要提供 filePath 和 tableName");
-      }
-
-      // 安全化表名
-      const safeName = String(tableName).replace(/[^a-zA-Z0-9_]/g, "_");
-
-      // 先删除已存在的同名表（谨慎操作）
-      await db.run(`DROP TABLE IF EXISTS ${safeName}`);
-
-      // 使用 DuckDB 的 read_csv_auto 自动推断结构并创建表
-      // 使用参数绑定来传入文件路径以避免注入风险
-      const sql = `CREATE TABLE ${safeName} AS SELECT * FROM read_csv_auto(?)`;
-      await db.run(sql, [filePath]);
-
-      return { tableName: safeName };
-    } catch (error) {
-      console.error("将 CSV 导入 DuckDB 失败:", error);
-      throw error;
-    }
-  }
-
   // 更新文件记录的 metadata（合并已有 metadata）
   async updateFileMetadata(fileId, newMetadata = {}) {
     const file = await this.getFileById(fileId);
@@ -361,31 +336,15 @@ class FileService {
 
     try {
       if (fileType === "CSV") {
-        // 优先从 DuckDB 读取，如果 metadata 中存在 tableName
-        const metadata = fileRecord.metadata || {};
-        if (metadata.tableName) {
-          const safeName = this.safeIdentifier(metadata.tableName);
-          const rows = await db.all(`SELECT * FROM ${safeName} LIMIT ?`, [limit]);
-          const countRow = await db.get(`SELECT COUNT(*) as total FROM ${safeName}`);
-          const totalRows = countRow && countRow.total ? Number(countRow.total) : 0;
-          const normalized = rows.map((r) => this.normalizeRow(r));
+          // 直接从文件系统读取 CSV，不再使用 DuckDB
+          const allData = await this.parseCSV(filePath);
           return {
-            preview: normalized,
-            totalRows,
+            preview: allData.slice(0, limit),
+            totalRows: allData.length,
             fileType: "CSV",
-            source: "duckdb",
+            source: "filesystem",
           };
-        }
-
-        // 回退到读取文件系统中的 CSV
-        const allData = await this.parseCSV(filePath);
-        return {
-          preview: allData.slice(0, limit),
-          totalRows: allData.length,
-          fileType: "CSV",
-          source: "filesystem",
-        };
-      } else if (fileType === "Excel") {
+        } else if (fileType === "Excel") {
         const allData = await this.parseExcel(filePath);
         const firstSheet = Object.keys(allData)[0];
         return {

@@ -3,7 +3,6 @@ import patientService from "../services/patientService.js";
 import { createResponse } from "../middleware/auth.js";
 import fs from "fs";
 import path from "path";
-import db from "../database/duckdb.js";
 
 // 文件上传
 export const uploadFile = async (req, res) => {
@@ -38,32 +37,6 @@ export const uploadFile = async (req, res) => {
       },
       uploadedBy
     );
-
-    // 如果是 CSV 文件，尝试把 CSV 导入 DuckDB，表名使用 file_<id>
-    let importedTable = null;
-    try {
-      if (finalFileType === "CSV") {
-        const tableName = `csv_file_${fileRecord.id}`;
-        const importResult = await fileService.importCSVToDuckDB(
-          fileRecord.filePath,
-          tableName
-        );
-        importedTable = importResult.tableName || tableName;
-      }
-    } catch (importErr) {
-      console.error("导入 CSV 到 DuckDB 失败:", importErr);
-      // 不阻塞文件上传；记录失败信息到 metadata 中
-      metadata.importError = importErr.message || String(importErr);
-    }
-
-    // 如果导入成功并有表名，持久化到文件 metadata 中
-    try {
-      if (importedTable) {
-        await fileService.updateFileMetadata(fileRecord.id, { tableName: importedTable });
-      }
-    } catch (metaErr) {
-      console.error("更新文件 metadata 失败:", metaErr);
-    }
 
     // 返回文件信息
     const fileInfo = {
@@ -230,24 +203,6 @@ export const getFileList = async (req, res) => {
   } catch (error) {
     console.error("获取文件列表错误:", error);
     res.json(createResponse(5001, "服务器错误"));
-  }
-};
-
-// 获取文件预览
-export const getFilePreview = async (req, res) => {
-  try {
-    const { id, limit = 10 } = req.body;
-
-    if (!id) {
-      return res.json(createResponse(4001, "文件ID不能为空"));
-    }
-
-    const preview = await fileService.getFilePreview(id, parseInt(limit));
-
-    res.json(createResponse(0, "获取文件预览成功", preview));
-  } catch (error) {
-    console.error("获取文件预览错误:", error);
-    res.json(createResponse(5001, error.message));
   }
 };
 
