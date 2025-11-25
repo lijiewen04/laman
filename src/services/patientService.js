@@ -249,7 +249,7 @@ class PatientService {
         preTreatment, treatmentType, memo
        FROM patients 
        ${whereClause}
-       ORDER BY id ASC
+       ORDER BY id DESC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
