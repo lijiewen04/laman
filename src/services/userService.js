@@ -157,7 +157,7 @@ class UserService {
       return await this.getUserById(id);
     }
 
-    const sql = `UPDATE users SET ${sets.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+    const sql = `UPDATE users SET ${sets.join(", ")}, updated_at = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) WHERE id = ?`;
     params.push(id);
 
     try {
@@ -179,7 +179,7 @@ class UserService {
   // 更新用户权限
   async updateUserPermission(username, userPermission) {
     await db.run(
-      `UPDATE users SET user_permission = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?`,
+      `UPDATE users SET user_permission = ?, updated_at = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) WHERE username = ?`,
       [userPermission, username]
     );
 
@@ -189,7 +189,7 @@ class UserService {
   // 更新用户权限（按 id）
   async updateUserPermissionById(id, userPermission) {
     await db.run(
-      `UPDATE users SET user_permission = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE users SET user_permission = ?, updated_at = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) WHERE id = ?`,
       [userPermission, id]
     );
 
@@ -216,7 +216,7 @@ class UserService {
   async setPasswordById(id, newPassword) {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await db.run(
-      `UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE users SET password = ?, updated_at = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) WHERE id = ?`,
       [hashedPassword, id]
     );
     return await this.getUserById(id);

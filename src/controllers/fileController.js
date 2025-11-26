@@ -476,7 +476,8 @@ function detectFileType(originalName, mimeType) {
 async function extractFileMetadata(file, fileType) {
   const metadata = {
     originalName: file.originalname,
-    uploadTime: new Date().toISOString(),
+    // 使用秒级时间戳
+    uploadTime: Math.floor(Date.now() / 1000),
     fileType: fileType,
   };
 

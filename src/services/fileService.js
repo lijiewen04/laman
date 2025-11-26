@@ -64,27 +64,25 @@ class FileService {
 
   // 把行对象中的 BigInt 转为 Number（递归一层）
   normalizeRow(row) {
+    // DB 层已经尽量把 BigInt/Date-like 转为原生数字（秒）。此处做安全处理：
     if (!row || typeof row !== 'object') return row;
     const out = Array.isArray(row) ? [] : {};
     for (const key of Object.keys(row)) {
       const v = row[key];
       if (typeof v === 'bigint') {
         out[key] = Number(v);
-      } else if (v && typeof v === 'object' && !Array.isArray(v)) {
-        // DuckDB 的 TIMESTAMP 可能会被驱动封装为对象，例如 { micros: BigInt } 或 { micros: number }
-        // 把这样的 timestamp 转为 ISO 字符串，便于前端使用和 JSON 序列化
-        if (Object.prototype.hasOwnProperty.call(v, 'micros')) {
-          try {
-            const micros = v.microseconds !== undefined ? v.microseconds : v.micros;
-            const ms = typeof micros === 'bigint' ? Number(micros) / 1000 : Number(micros) / 1000;
-            const d = new Date(ms);
-            out[key] = d.toISOString();
-          } catch (e) {
-            out[key] = this.normalizeRow(v);
-          }
-        } else {
-          out[key] = this.normalizeRow(v);
+      } else if (v instanceof Date) {
+        out[key] = Math.floor(v.getTime() / 1000);
+      } else if (v && typeof v === 'object' && (Object.prototype.hasOwnProperty.call(v, 'micros') || Object.prototype.hasOwnProperty.call(v, 'microseconds'))) {
+        try {
+          const micros = v.micros !== undefined ? v.micros : v.microseconds;
+          const microsNum = typeof micros === 'bigint' ? Number(micros) : Number(micros);
+          out[key] = Math.floor(microsNum / 1_000_000);
+        } catch (e) {
+          out[key] = v;
         }
+      } else if (v && typeof v === 'object') {
+        out[key] = this.normalizeRow(v);
       } else {
         out[key] = v;
       }
@@ -381,35 +379,23 @@ class FileService {
       throw new Error('只能为访客用户授权下载');
     }
 
-    // 计算过期时间（Date 对象，用于返回给客户端的 ISO 字符串）
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + parseInt(expiresIn));
-
-    // DuckDB 在 CAST ISO 带 'Z' 的字符串到 TIMESTAMP 时可能会忽略时区，
-    // 导致比较 CURRENT_TIMESTAMP 失败（表现为短期授权立即过期）。
-    // 为了兼容，存储到数据库的 expires_at 使用本地时间的不带时区格式：
-    // "YYYY-MM-DD HH:MM:SS"，以便 CAST(expires_at AS TIMESTAMP) 与 CURRENT_TIMESTAMP 正常比较。
-    const pad = (n) => String(n).padStart(2, '0');
-    const localY = expiresAt.getFullYear();
-    const localM = pad(expiresAt.getMonth() + 1);
-    const localD = pad(expiresAt.getDate());
-    const localH = pad(expiresAt.getHours());
-    const localMin = pad(expiresAt.getMinutes());
-    const localS = pad(expiresAt.getSeconds());
-    const expiresAtLocalString = `${localY}-${localM}-${localD} ${localH}:${localMin}:${localS}`;
+    // 计算过期时间（秒级时间戳）并存储整数
+    const expiresAtDate = new Date();
+    expiresAtDate.setHours(expiresAtDate.getHours() + parseInt(expiresIn));
+    const expiresAtTs = Math.floor(expiresAtDate.getTime() / 1000);
 
     try {
       const result = await db.run(
         `INSERT INTO file_download_authorizations (file_id, user_id, expires_at)
          VALUES (?, ?, ?)`,
-        [fileId, user.id, expiresAtLocalString]
+        [fileId, user.id, expiresAtTs]
       );
 
       return {
         success: result.changes > 0,
         username: user.username,
         fileId: fileId,
-        expiresAt: expiresAt.toISOString(),
+        expiresAt: expiresAtTs,
       };
     } catch (err) {
       // 如果是唯一约束冲突（已存在授权），则更新过期时间而不是抛错
@@ -417,14 +403,14 @@ class FileService {
       if (/unique|duplicate|违反|UNIQUE|Duplicate/i.test(msg)) {
         const updateRes = await db.run(
           `UPDATE file_download_authorizations SET expires_at = ? WHERE file_id = ? AND user_id = ?`,
-          [expiresAtLocalString, fileId, user.id]
+          [expiresAtTs, fileId, user.id]
         );
 
         return {
           success: updateRes.changes > 0,
           username: user.username,
           fileId: fileId,
-          expiresAt: expiresAt.toISOString(),
+          expiresAt: expiresAtTs,
           note: updateRes.changes > 0 ? '授权已存在，已更新过期时间' : '授权已存在但未更新',
         };
       }
@@ -438,8 +424,9 @@ class FileService {
   async checkDownloadAuthorization(fileId, userId) {
     try {
       // 查询授权并判断是否仍然有效（is_valid 字段为布尔或 0/1）
+      // 由于 expires_at 存为秒级整数，直接与当前 epoch 秒比较
       const authorization = await db.get(
-        `SELECT id, expires_at, CAST(expires_at AS TIMESTAMP) > CURRENT_TIMESTAMP as is_valid
+        `SELECT id, expires_at, expires_at > CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) as is_valid
          FROM file_download_authorizations 
          WHERE file_id = ? AND user_id = ?`,
         [fileId, userId]

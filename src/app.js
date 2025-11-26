@@ -42,7 +42,7 @@ try {
 app.post("/health", (req, res) => {
   res.json(
     createResponse(0, "服务运行正常", {
-      timestamp: new Date().toISOString(),
+      timestamp: Math.floor(Date.now() / 1000),
     })
   );
 });

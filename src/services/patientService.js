@@ -303,8 +303,8 @@ class PatientService {
       return await this.getPatientById(id);
     }
 
-    // 添加更新时间
-    setClauses.push("updatedAt = CURRENT_TIMESTAMP");
+    // 添加更新时间（秒级时间戳）
+    setClauses.push("updatedAt = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT)");
 
     const sql = `UPDATE patients SET ${setClauses.join(", ")} WHERE id = ?`;
     params.push(id);
