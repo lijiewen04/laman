@@ -221,7 +221,7 @@ class FileService {
         LEFT JOIN users u ON f.uploaded_by = u.id
         LEFT JOIN patients p ON f.patient_id = p.id
         ${whereClause}
-        ORDER BY f.created_at DESC
+        ORDER BY f.id DESC
         LIMIT ? OFFSET ?`,
         [...params, limit, offset]
       );
@@ -236,7 +236,7 @@ class FileService {
           LEFT JOIN users u ON f.uploaded_by = u.id
           LEFT JOIN patients p ON f.patient_id = p.id
           ${whereClause}
-          ORDER BY f.created_at DESC
+          ORDER BY f.id DESC
           LIMIT ? OFFSET ?`,
         [...params, limit, offset]
       );

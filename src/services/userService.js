@@ -54,7 +54,7 @@ class UserService {
     return await db.all(
       `SELECT id, username, user_permission as userPermission, department, phone 
        FROM users WHERE is_active = true 
-       ORDER BY created_at DESC`
+       ORDER BY id DESC`
     );
   }
 
@@ -113,7 +113,7 @@ class UserService {
       `SELECT id, username, user_permission as userPermission, department, phone
        FROM users
        ${whereClause}
-       ORDER BY created_at DESC
+       ORDER BY id DESC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
