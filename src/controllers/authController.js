@@ -10,8 +10,6 @@ const generateToken = (id) => {
   });
 };
 
-// 注意: 注册接口已移除，注册功能仅由超级管理员通过 /api/auth/create-user 创建
-
 // 管理员创建用户（仅超级管理员可调用）
 export const createUserByAdmin = async (req, res) => {
   try {
@@ -22,9 +20,6 @@ export const createUserByAdmin = async (req, res) => {
     if (!["超级管理员", "管理员", "用户", "访客"].includes(userPermission)) {
       return res.json(createResponse(4002, "权限类型无效"));
     }
-
-    const exists = await userService.checkUserExists(username);
-    if (exists) return res.json(createResponse(3001, "用户名已存在"));
 
     // 如果密码未提供，生成一个安全随机密码并返回给管理员
     let generatedPassword = password;
@@ -56,11 +51,6 @@ export const adminUpdateUser = async (req, res) => {
 
     const user = await userService.getUserById(id);
     if (!user) return res.json(createResponse(4003, "用户不存在"));
-
-    if (username && username !== user.username) {
-      const existing = await userService.getUserByUsername(username);
-      if (existing && existing.id !== id) return res.json(createResponse(3004, "用户名已被使用"));
-    }
 
     if (userPermission !== undefined && !["超级管理员", "管理员", "用户", "访客"].includes(userPermission)) {
       return res.json(createResponse(4002, "权限类型无效"));
@@ -198,14 +188,6 @@ export const updateProfile = async (req, res) => {
   try {
     const { username, department, phone } = req.body;
     const userId = req.user.id;
-
-    // 检查用户名是否已被其他用户使用
-    if (username && username !== req.user.username) {
-      const existingUser = await userService.getUserByUsername(username);
-      if (existingUser && existingUser.id !== userId) {
-        return res.json(createResponse(3004, "用户名已被使用"));
-      }
-    }
 
     // 仅包含实际要更新的字段，避免不必要地更新其他列
     const updateData = {};
