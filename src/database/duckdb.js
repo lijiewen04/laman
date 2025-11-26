@@ -91,6 +91,7 @@ class Database {
          file_id INTEGER,
          user_id INTEGER,
          expires_at TIMESTAMP NOT NULL,
+         status VARCHAR(20) DEFAULT 'active',
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
          UNIQUE(file_id, user_id)
        )

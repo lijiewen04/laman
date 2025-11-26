@@ -28,7 +28,18 @@ export const validateFileUpload = (req, res, next) => {
 };
 
 export const validateDownloadAuth = (req, res, next) => {
-  const { fileId, userId, expiresIn } = req.body;
+  const { fileId, userId, expiresIn, requestId, action } = req.body;
+
+  // 两种合法方式：
+  // 1) 直接为用户授权：需要 fileId + userId
+  // 2) 处理访客的申请：需要 requestId + action (approve|reject)
+
+  if (requestId !== undefined && requestId !== null) {
+    if (!action || (action !== "approve" && action !== "reject")) {
+      return res.json(createResponse(4001, "当使用 requestId 时，必须提供 action，取值为 'approve' 或 'reject'"));
+    }
+    return next();
+  }
 
   if (!fileId || (userId === undefined || userId === null)) {
     return res.json(createResponse(4001, "文件ID和用户ID不能为空"));

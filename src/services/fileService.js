@@ -526,6 +526,51 @@ class FileService {
     return { success: true, request: this.normalizeRow(requestRecord) };
   }
 
+  // 管理员处理访客的下载申请：批准或拒绝
+  // action: 'approve' | 'reject'
+  async processDownloadRequest(requestId, action, adminUserId, expiresIn = 24) {
+    if (!requestId) throw new Error("请求ID不能为空");
+    if (!action || (action !== "approve" && action !== "reject")) throw new Error("无效的 action");
+
+    const reqRecord = await db.get(
+      `SELECT id, file_id as fileId, user_id as userId, username, message, status FROM download_requests WHERE id = ?`,
+      [requestId]
+    );
+
+    if (!reqRecord) {
+      throw new Error("请求不存在");
+    }
+
+    if (reqRecord.status !== "pending") {
+      return { success: false, reason: "already_processed", status: reqRecord.status };
+    }
+
+    if (action === "reject") {
+      await db.run(`UPDATE download_requests SET status = 'rejected' WHERE id = ?`, [requestId]);
+      return { success: true, action: "rejected" };
+    }
+
+    // 批准：创建或更新授权记录（并设置 authorization.status = 'active'）
+    // 复用 authorizeDownload 来创建/更新授权并获得 expiresAt
+    const authResult = await this.authorizeDownload(reqRecord.fileId, reqRecord.userId, expiresIn);
+
+    // 把 download_requests.status 标记为 approved
+    await db.run(`UPDATE download_requests SET status = 'approved' WHERE id = ?`, [requestId]);
+
+    // 如果 file_download_authorizations 表有 status 字段，则确保其为 'active'
+    try {
+      await db.run(
+        `UPDATE file_download_authorizations SET status = 'active' WHERE file_id = ? AND user_id = ?`,
+        [reqRecord.fileId, reqRecord.userId]
+      );
+    } catch (e) {
+      // 忽略更新失败，让上层逻辑继续；主要是为了兼容不同 DB 状态
+      console.error("更新授权状态失败:", e);
+    }
+
+    return { success: true, action: "approved", authorization: authResult };
+  }
+
   // 超级管理员获取下载申请列表（支持简单分页和按状态/文件筛选）
   async getDownloadRequests(filter = {}, page = 1, limit = 20) {
     // 支持按状态、fileId、userId、patientName、patientGroup 过滤
@@ -571,7 +616,7 @@ class FileService {
     const rows = await db.all(
       `SELECT dr.id, dr.file_id as fileId, dr.user_id as userId, dr.username, dr.message, dr.status, dr.created_at as createdAt,
               f.original_name as originalName, f.filename as filename,
-              p.name as patientName, p."group" as patientGroup
+              p.id as patientId, p.serialNo as patientSerialNo, p.name as patientName, p."group" as patientGroup
        FROM download_requests dr
        LEFT JOIN files f ON dr.file_id = f.id
        LEFT JOIN patients p ON f.patient_id = p.id

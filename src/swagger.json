@@ -739,7 +739,7 @@
       "post": {
         "summary": "授权访客下载（超级管理员）",
         "deprecated": false,
-        "description": "",
+        "description": "管理员可以直接为指定用户授权下载，或者处理访客提交的下载申请（批准/拒绝）。两种合法用法：1) 直接授权：提供 `fileId` 与 `userId`；2) 处理申请：提供 `requestId` 与 `action`（`approve` 或 `reject`）。",
         "tags": ["File", "File"],
         "parameters": [],
         "requestBody": {
@@ -747,6 +747,16 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AuthorizeDownloadRequest"
+              },
+              "examples": {
+                "directAuthorize": {
+                  "summary": "直接为用户授权",
+                  "value": { "fileId": 123, "userId": 456, "expiresIn": 24 }
+                },
+                "processRequest": {
+                  "summary": "处理访客的下载申请（批准）",
+                  "value": { "requestId": 789, "action": "approve", "expiresIn": 48 }
+                }
               }
             }
           },
@@ -754,7 +764,7 @@
         },
         "responses": {
           "200": {
-            "description": "授权结果",
+            "description": "授权结果或处理结果",
             "content": {
               "application/json": {
                 "schema": {
@@ -1664,20 +1674,30 @@
       },
       "AuthorizeDownloadRequest": {
         "type": "object",
+        "description": "两种合法用法：1) 直接授权：提供 `fileId` 与 `userId`；2) 处理访客申请：提供 `requestId` 与 `action`（'approve' 或 'reject'）。",
         "properties": {
           "fileId": {
-            "type": "integer"
+            "type": "integer",
+            "description": "目标文件 ID（用于直接授权）"
           },
           "userId": {
             "type": "integer",
-            "description": "目标用户的 ID（只接受 userId 以标识用户）"
+            "description": "目标用户的 ID（用于直接授权，仅接受 userId）"
+          },
+          "requestId": {
+            "type": "integer",
+            "description": "下载申请的 ID（用于处理访客申请）"
+          },
+          "action": {
+            "type": "string",
+            "description": "当使用 requestId 时，action 必须为 'approve' 或 'reject'",
+            "enum": ["approve", "reject"]
           },
           "expiresIn": {
             "type": "integer",
-            "description": "hours, default 24"
+            "description": "授权时长（小时），默认 24"
           }
-        },
-        "required": ["fileId", "userId"]
+        }
       },
       "RequestDownloadRequest": {
         "type": "object",
@@ -1746,7 +1766,9 @@
                         "filename": { "type": "string" },
                         "originalName": { "type": "string" },
                         "patientName": { "type": "string" },
-                        "patientGroup": { "type": "string" }
+                        "patientGroup": { "type": "string" },
+                        "patientId": { "type": "integer" },
+                        "patientSerialNo": { "type": "string" }
                       }
                     }
                   },
