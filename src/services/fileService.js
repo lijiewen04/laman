@@ -474,6 +474,123 @@ class FileService {
       return { authorized: false, reason: "检查授权失败" };
     }
   }
+
+  // 访客提交下载申请
+  async createDownloadRequest(fileId, userId, message = "") {
+    // 基本校验
+    if (!fileId) throw new Error("文件ID不能为空");
+    if (!userId) throw new Error("用户ID不能为空");
+
+    const file = await this.getFileById(fileId);
+    if (!file) {
+      throw new Error("文件不存在");
+    }
+
+    const user = await userService.getUserById(Number(userId));
+    if (!user) {
+      throw new Error("用户不存在");
+    }
+
+    const perm = user.user_permission !== undefined ? user.user_permission : user.userPermission;
+    if (perm !== "访客") {
+      // 非访客无需提交申请
+      return { success: false, reason: "not_needed" };
+    }
+
+    // 检查是否已有未处理的申请
+    const existing = await db.get(
+      `SELECT id, status, created_at FROM download_requests WHERE file_id = ? AND user_id = ? AND status = 'pending'`,
+      [fileId, user.id]
+    );
+
+    if (existing) {
+      return { success: false, reason: "already_pending", requestId: existing.id };
+    }
+
+    // 插入申请记录，返回插入 id
+    const inserted = await db.get(
+      `INSERT INTO download_requests (file_id, user_id, username, message, status) VALUES (?, ?, ?, ?, 'pending') RETURNING id, created_at`,
+      [fileId, user.id, user.username, message || ""]
+    );
+
+    if (!inserted || !inserted.id) {
+      return { success: false, reason: "insert_failed" };
+    }
+
+    // 返回申请信息
+    const requestRecord = await db.get(
+      `SELECT id, file_id as fileId, user_id as userId, username, message, status, created_at as createdAt FROM download_requests WHERE id = ?`,
+      [inserted.id]
+    );
+
+    return { success: true, request: this.normalizeRow(requestRecord) };
+  }
+
+  // 超级管理员获取下载申请列表（支持简单分页和按状态/文件筛选）
+  async getDownloadRequests(filter = {}, page = 1, limit = 20) {
+    // 支持按状态、fileId、userId、patientName、patientGroup 过滤
+    let where = "WHERE 1=1";
+    const params = [];
+
+    if (filter.status) {
+      where += ` AND dr.status = ?`;
+      params.push(filter.status);
+    }
+
+    if (filter.fileId !== undefined) {
+      where += ` AND dr.file_id = ?`;
+      params.push(Number(filter.fileId));
+    }
+
+    if (filter.userId !== undefined) {
+      where += ` AND dr.user_id = ?`;
+      params.push(Number(filter.userId));
+    }
+
+    if (filter.patientName) {
+      where += ` AND p.name LIKE ?`;
+      params.push(`%${filter.patientName}%`);
+    }
+
+    if (filter.patientGroup) {
+      where += ` AND p."group" = ?`;
+      params.push(filter.patientGroup);
+    }
+
+    const offset = (page - 1) * limit;
+
+    // 使用相同的 join 来计算总数，保证分页在加入 patient 过滤时仍然正确
+    const countResult = await db.get(
+      `SELECT COUNT(*) as total FROM download_requests dr
+         LEFT JOIN files f ON dr.file_id = f.id
+         LEFT JOIN patients p ON f.patient_id = p.id
+         ${where}`,
+      params
+    );
+
+    const rows = await db.all(
+      `SELECT dr.id, dr.file_id as fileId, dr.user_id as userId, dr.username, dr.message, dr.status, dr.created_at as createdAt,
+              f.original_name as originalName, f.filename as filename,
+              p.name as patientName, p."group" as patientGroup
+       FROM download_requests dr
+       LEFT JOIN files f ON dr.file_id = f.id
+       LEFT JOIN patients p ON f.patient_id = p.id
+       ${where}
+       ORDER BY dr.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    const totalNum = Number(countResult && countResult.total ? countResult.total : 0);
+
+    return {
+      items: rows.map((r) => this.normalizeRow(r)),
+      total: totalNum,
+      page,
+      limit,
+      totalPages: Math.ceil(totalNum / limit),
+    };
+  }
 }
 
 export default new FileService();

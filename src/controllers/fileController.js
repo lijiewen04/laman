@@ -364,6 +364,71 @@ export const authorizeDownload = async (req, res) => {
   }
 };
 
+// 访客提交下载申请
+export const requestDownload = async (req, res) => {
+  try {
+    const { fileId, message = "" } = req.body;
+
+    if (!fileId) {
+      return res.json(createResponse(4001, "文件ID不能为空"));
+    }
+
+    // 仅访客需要提交申请
+    if (req.user.userPermission !== "访客") {
+      return res.json(createResponse(4006, "无需请求权限"));
+    }
+
+    const result = await fileService.createDownloadRequest(Number(fileId), req.user.id, message);
+
+    if (result.success) {
+      return res.json(createResponse(0, "提交申请成功", result.request));
+    }
+
+    // 处理不同的失败原因
+    if (result.reason === "not_needed") {
+      return res.json(createResponse(4006, "无需请求权限"));
+    }
+
+    if (result.reason === "already_pending") {
+      return res.json(createResponse(4007, "已有未处理的下载申请"));
+    }
+
+    return res.json(createResponse(5001, "提交申请失败"));
+  } catch (error) {
+    console.error("提交下载申请错误:", error);
+    return res.json(createResponse(5001, "提交申请失败"));
+  }
+};
+
+// 超级管理员获取下载申请列表
+export const getRequestList = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, fileId, userId, patientName, patientGroup } = req.body;
+
+    const filter = {};
+    if (status) filter.status = status;
+    if (fileId !== undefined) filter.fileId = fileId;
+    if (userId !== undefined) filter.userId = userId;
+    if (patientName) filter.patientName = patientName;
+    if (patientGroup) filter.patientGroup = patientGroup;
+
+    const result = await fileService.getDownloadRequests(filter, Number(page), Number(limit));
+
+    return res.json(createResponse(0, "获取申请列表成功", {
+      items: result.items,
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      }
+    }));
+  } catch (error) {
+    console.error("获取申请列表错误:", error);
+    return res.json(createResponse(5001, "获取申请列表失败"));
+  }
+};
+
 // 辅助函数：检测文件类型
 function detectFileType(originalName, mimeType) {
   const ext = path.extname(originalName).toLowerCase();

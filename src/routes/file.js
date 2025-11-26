@@ -9,6 +9,8 @@ import {
   deleteFile,
   getFileTypes,
   authorizeDownload,
+  requestDownload,
+  getRequestList,
 } from "../controllers/fileController.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { validateFileUpload, validateDownloadAuth } from "../middleware/fileValidation.js";
@@ -78,5 +80,11 @@ router.post(
   validateDownloadAuth,
   authorizeDownload
 );
+
+// 访客提交下载申请（访客使用）
+router.post("/request-download", requestDownload);
+
+// 超级管理员获取下载申请列表
+router.post("/request-list", authorize("超级管理员"), getRequestList);
 
 export default router;

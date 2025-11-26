@@ -131,6 +131,28 @@ class Database {
         "CREATE INDEX IF NOT EXISTS idx_auth_expires ON file_download_authorizations(expires_at)"
       );
 
+      // 下载请求表（访客提交的下载申请）
+      await this.run(`
+        CREATE SEQUENCE IF NOT EXISTS download_requests_id_seq START 1;
+
+        CREATE TABLE IF NOT EXISTS download_requests (
+         id INTEGER PRIMARY KEY DEFAULT nextval('download_requests_id_seq'),
+         file_id INTEGER,
+         user_id INTEGER,
+         username VARCHAR(100),
+         message TEXT,
+         status VARCHAR(20) DEFAULT 'pending',
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await this.run(
+        "CREATE INDEX IF NOT EXISTS idx_download_requests_file_user ON download_requests(file_id, user_id)"
+      );
+      await this.run(
+        "CREATE INDEX IF NOT EXISTS idx_download_requests_status ON download_requests(status)"
+      );
+
       console.log("数据库初始化完成");
     } catch (error) {
       console.error("数据库初始化失败:", error);

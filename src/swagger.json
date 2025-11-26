@@ -5,20 +5,7 @@
     "description": "",
     "version": "1.0.0"
   },
-  "tags": [
-    {
-      "name": "Auth"
-    },
-    {
-      "name": "Patient"
-    },
-    {
-      "name": "File"
-    },
-    {
-      "name": "System"
-    }
-  ],
+  "tags": [{ "name": "Auth" }, { "name": "Patient" }, { "name": "File" }, { "name": "System" }],
   "paths": {
     "/api/auth/create-user": {
       "post": {
@@ -803,6 +790,63 @@
         },
         "security": []
       }
+    },
+    "/api/file/request-download": {
+      "post": {
+        "summary": "访客提交下载申请",
+        "deprecated": false,
+        "description": "仅访客用户可提交下载申请；其他用户调用返回 '无需请求权限'。请求体 { fileId, message? }。",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RequestDownloadRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "提交结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RequestDownloadResponse" }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
+    },
+    "/api/file/request-list": {
+      "post": {
+        "summary": "超级管理员获取下载申请列表",
+        "deprecated": false,
+        "description": "仅超级管理员可用。支持分页与按状态/文件/用户筛选。",
+        "tags": ["File", "File"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RequestListRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "申请列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RequestListResponse" }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
     }
   },
   "components": {
@@ -1391,8 +1435,7 @@
           "userPermission": {
             "$ref": "#/components/schemas/UserPermission",
             "description": "按权限精确匹配（例如：超级管理员/管理员/访客）"
-          }
-          ,
+          },
           "phone": { "type": "string", "description": "按电话号码模糊搜索" },
           "createdAtStart": { "type": "string", "description": "创建时间起始（ISO）" },
           "createdAtEnd": { "type": "string", "description": "创建时间结束（ISO）" },
@@ -1635,8 +1678,93 @@
           }
         },
         "required": ["fileId", "userId"]
-      }
-      ,
+      },
+      "RequestDownloadRequest": {
+        "type": "object",
+        "properties": {
+          "fileId": { "type": "integer" },
+          "message": { "type": "string", "description": "申请说明，可选" }
+        },
+        "required": ["fileId"]
+      },
+      "RequestDownloadResponse": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": { "type": "integer" },
+                  "fileId": { "type": "integer" },
+                  "userId": { "type": "integer" },
+                  "username": { "type": "string" },
+                  "message": { "type": "string" },
+                  "status": { "type": "string" },
+                  "createdAt": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RequestListRequest": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "default": 1 },
+          "limit": { "type": "integer", "default": 20 },
+          "status": { "type": "string" },
+          "fileId": { "type": "integer" },
+          "userId": { "type": "integer" },
+          "patientName": { "type": "string", "description": "按患者姓名模糊搜索" },
+          "patientGroup": { "type": "string", "description": "按患者分组精确匹配" }
+        }
+      },
+      "RequestListResponse": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "fileId": { "type": "integer" },
+                        "userId": { "type": "integer" },
+                        "username": { "type": "string" },
+                        "message": { "type": "string" },
+                        "status": { "type": "string" },
+                        "createdAt": { "type": "string", "format": "date-time" },
+                        "filename": { "type": "string" },
+                        "originalName": { "type": "string" },
+                        "patientName": { "type": "string" },
+                        "patientGroup": { "type": "string" }
+                      }
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "properties": {
+                      "page": { "type": "integer" },
+                      "limit": { "type": "integer" },
+                      "total": { "type": "integer" },
+                      "totalPages": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
       "CreateUserRequest": {
         "type": "object",
         "properties": {
@@ -1652,7 +1780,17 @@
         "type": "object",
         "allOf": [
           { "$ref": "#/components/schemas/BaseResponse" },
-          { "properties": { "data": { "type": "object", "properties": { "user": { "$ref": "#/components/schemas/AuthMeResponse" }, "password": { "type": "string" } } } } }
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "user": { "$ref": "#/components/schemas/AuthMeResponse" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
         ]
       },
       "AdminUpdateUserRequest": {
@@ -1670,7 +1808,20 @@
         "type": "object",
         "allOf": [
           { "$ref": "#/components/schemas/BaseResponse" },
-          { "properties": { "data": { "type": "object", "properties": { "id": { "type": "integer" }, "username": { "type": "string" }, "userPermission": { "type": "string" }, "department": { "type": "string" }, "phone": { "type": "string" } } } } }
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "integer" },
+                  "username": { "type": "string" },
+                  "userPermission": { "type": "string" },
+                  "department": { "type": "string" },
+                  "phone": { "type": "string" }
+                }
+              }
+            }
+          }
         ]
       },
       "ResetPasswordRequest": {
@@ -1682,7 +1833,18 @@
         "type": "object",
         "allOf": [
           { "$ref": "#/components/schemas/BaseResponse" },
-          { "properties": { "data": { "type": "object", "properties": { "id": { "type": "integer" }, "username": { "type": "string" }, "newPassword": { "type": "string" } } } } }
+          {
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "integer" },
+                  "username": { "type": "string" },
+                  "newPassword": { "type": "string" }
+                }
+              }
+            }
+          }
         ]
       }
     },
