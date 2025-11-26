@@ -437,14 +437,16 @@ export const requestDownload = async (req, res) => {
 // 超级管理员获取下载申请列表
 export const getRequestList = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, fileId, userId, patientName, patientGroup } = req.body;
+    const { page = 1, limit = 20, status, fileId, userId, patientName, patientId, patientGroup, originalName } = req.body;
 
     const filter = {};
     if (status) filter.status = status;
     if (fileId !== undefined) filter.fileId = fileId;
     if (userId !== undefined) filter.userId = userId;
     if (patientName) filter.patientName = patientName;
+    if (patientId !== undefined) filter.patientId = patientId;
     if (patientGroup) filter.patientGroup = patientGroup;
+    if (originalName) filter.originalName = originalName;
 
     const result = await fileService.getDownloadRequests(filter, Number(page), Number(limit));
 

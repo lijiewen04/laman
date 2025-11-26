@@ -659,9 +659,19 @@ class FileService {
       params.push(`%${filter.patientName}%`);
     }
 
+    if (filter.patientId) {
+      where += ` AND p."id" = ?`;
+      params.push(Number(filter.patientId));
+    }
+
     if (filter.patientGroup) {
       where += ` AND p."group" = ?`;
       params.push(filter.patientGroup);
+    }
+
+    if (filter.originalName) {
+      where += ` AND LOWER(f.original_name) LIKE ?`;
+      params.push(`%${String(filter.originalName).toLowerCase()}%`);
     }
 
     const offset = (page - 1) * limit;
