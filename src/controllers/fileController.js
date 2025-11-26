@@ -170,7 +170,7 @@ export const getFileList = async (req, res) => {
     if (createdAtStart) filter.createdAtStart = createdAtStart;
     if (createdAtEnd) filter.createdAtEnd = createdAtEnd;
 
-    const result = await fileService.getFiles(filter, parseInt(page), parseInt(limit));
+    const result = await fileService.getFiles(filter, parseInt(page), parseInt(limit), req.user);
 
     res.json(
       createResponse(0, '获取文件列表成功', {

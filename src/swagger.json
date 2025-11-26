@@ -821,7 +821,50 @@
             "description": "提交结果",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RequestDownloadResponse" }
+                "schema": { "$ref": "#/components/schemas/RequestDownloadResponse" },
+                "examples": {
+                  "success": {
+                    "summary": "提交成功",
+                    "value": {
+                      "status": 0,
+                      "msg": "提交申请成功",
+                      "data": {
+                        "id": 123,
+                        "fileId": 10,
+                        "userId": 45,
+                        "username": "visitor1",
+                        "message": "请批准",
+                        "status": "pending",
+                        "createdAt": "2025-11-26T12:00:00Z"
+                      }
+                    }
+                  },
+                  "already_pending": {
+                    "summary": "已有未处理申请",
+                    "value": {
+                      "status": 4007,
+                      "msg": "已有下载申请",
+                      "data": null
+                    }
+                  },
+                  "already_approved": {
+                    "summary": "已被批准，不能再次申请",
+                    "value": {
+                      "status": 4007,
+                      "msg": "申请已经批准",
+                      "data": null
+                    }
+                  },
+                  "recently_rejected": {
+                    "summary": "被拒且需等待",
+                    "value": {
+                      "status": 4007,
+                      "msg": "申请被拒绝，请02-30后重试",
+                      "data": null,
+                      "retryAfterSeconds": 9000
+                    }
+                  }
+                }
               }
             },
             "headers": {}
@@ -1152,6 +1195,7 @@
           "uploadedBy": { "type": "integer" },
           "uploadedByUsername": { "type": "string" },
           "importedTable": { "type": "string" }
+          ,"hasPermission": { "type": "boolean", "description": "当前用户是否有权限访问/下载此文件（非访客始终 true；访客根据授权判断）" }
         }
       },
       "FileUploadResponse": {

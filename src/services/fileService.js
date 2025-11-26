@@ -119,7 +119,7 @@ class FileService {
   }
 
   // 获取文件列表
-  async getFiles(filter = {}, page = 1, limit = 20) {
+  async getFiles(filter = {}, page = 1, limit = 20, currentUser = null) {
     let whereClause = 'WHERE f.is_deleted = false';
     const params = [];
 
@@ -224,6 +224,42 @@ class FileService {
       }
       return normalized;
     });
+
+    // 添加 hasPermission 字段：非访客默认有权限；访客需检查授权表
+    try {
+      const isVisitor = currentUser && (currentUser.userPermission === '访客' || currentUser.user_permission === '访客');
+      if (!isVisitor) {
+        files = files.map((f) => ({ ...f, hasPermission: true }));
+      } else {
+        // 批量查询该用户对这些文件的授权情况
+        const fileIds = files.map((f) => f.id).filter((id) => id !== undefined && id !== null);
+        if (fileIds.length === 0) {
+          files = files.map((f) => ({ ...f, hasPermission: false }));
+        } else {
+          const placeholders = fileIds.map(() => '?').join(',');
+          const params = [Number(currentUser.id), ...fileIds];
+          // 注意：使用 db.all 查询每个 file_id 的最新授权是否有效
+          const rows = await db.all(
+            `SELECT file_id, (expires_at > CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT)) as is_valid
+             FROM file_download_authorizations
+             WHERE user_id = ? AND file_id IN (${placeholders})`,
+            params
+          );
+
+          const authMap = new Map();
+          for (const r of rows) {
+            // r.is_valid 可能为 1/0 或 true/false
+            authMap.set(r.file_id, r.is_valid === true || r.is_valid === 1);
+          }
+
+          files = files.map((f) => ({ ...f, hasPermission: Boolean(authMap.get(f.id)) }));
+        }
+      }
+    } catch (e) {
+      // 若权限检查出错，默认对所有文件设为 false（保守策略），并在控制台记录
+      console.error('检查文件列表权限时出错:', e);
+      files = files.map((f) => ({ ...f, hasPermission: false }));
+    }
 
     const totalNum = Number(countResult && countResult.total ? countResult.total : 0);
 
