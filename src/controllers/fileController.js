@@ -53,7 +53,6 @@ export const uploadFile = async (req, res) => {
       downloadCount: fileRecord.downloadCount,
       createdAt: fileRecord.createdAt,
       uploadedBy: fileRecord.uploadedByUsername,
-      importedTable,
     };
 
     res.json(createResponse(0, "文件上传成功", fileInfo));
@@ -396,6 +395,16 @@ export const requestDownload = async (req, res) => {
     return res.json(createResponse(5001, "提交申请失败"));
   } catch (error) {
     console.error("提交下载申请错误:", error);
+    // 如果是文件不存在，返回友好提示
+    if (error && typeof error.message === "string" && error.message.indexOf("文件不存在") !== -1) {
+      return res.json(createResponse(4002, "文件不存在"));
+    }
+
+    // 如果是用户不存在或参数错误，返回相应提示
+    if (error && typeof error.message === "string" && error.message.indexOf("用户不存在") !== -1) {
+      return res.json(createResponse(4002, "用户不存在"));
+    }
+
     return res.json(createResponse(5001, "提交申请失败"));
   }
 };
