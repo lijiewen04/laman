@@ -518,7 +518,7 @@ class FileService {
         return { success: false, reason: 'already_pending', requestId: lastRecord.id };
       }
 
-      if (status === 'approved') {
+      if (status === 'approved' && lastRecord.expires_at > Math.floor(Date.now() / 1000)) {
         return { success: false, reason: 'already_approved', requestId: lastRecord.id };
       }
 
