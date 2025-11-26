@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs";
 import { DuckDBInstance } from "@duckdb/node-api";
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 // 使用 @duckdb/node-api 创建实例并连接
 
@@ -155,6 +157,28 @@ class Database {
       await this.run(
         "CREATE INDEX IF NOT EXISTS idx_download_requests_status ON download_requests(status)"
       );
+
+      // 如果用户表为空，自动创建一个默认的超级管理员
+      try {
+        const cntRow = await this.get(`SELECT COUNT(*) as cnt FROM users`);
+        const cnt = cntRow && cntRow.cnt !== undefined ? (typeof cntRow.cnt === 'bigint' ? Number(cntRow.cnt) : cntRow.cnt) : 0;
+        if (!cnt) {
+          const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
+          const plainPassword = crypto.randomBytes(8).toString('hex');
+          const hashed = await bcrypt.hash(plainPassword, 12);
+          try {
+            await this.run(
+              `INSERT INTO users (username, password, user_permission, is_active) VALUES (?, ?, ?, ?)`,
+              [defaultUsername, hashed, '超级管理员', true]
+            );
+            console.log(`默认超级管理员已创建，用户名: ${defaultUsername}, 密码: ${plainPassword}`);
+          } catch (e) {
+            console.error('创建默认超级管理员失败:', e);
+          }
+        }
+      } catch (e) {
+        console.error('检查或创建默认管理员时出错:', e);
+      }
 
       console.log("数据库初始化完成");
     } catch (error) {
