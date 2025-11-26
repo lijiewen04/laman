@@ -73,7 +73,11 @@ class FileService {
         out[key] = Number(v);
       } else if (v instanceof Date) {
         out[key] = Math.floor(v.getTime() / 1000);
-      } else if (v && typeof v === 'object' && (Object.prototype.hasOwnProperty.call(v, 'micros') || Object.prototype.hasOwnProperty.call(v, 'microseconds'))) {
+      } else if (
+        v &&
+        typeof v === 'object' &&
+        (Object.prototype.hasOwnProperty.call(v, 'micros') || Object.prototype.hasOwnProperty.call(v, 'microseconds'))
+      ) {
         try {
           const micros = v.micros !== undefined ? v.micros : v.microseconds;
           const microsNum = typeof micros === 'bigint' ? Number(micros) : Number(micros);
@@ -196,21 +200,49 @@ class FileService {
       params
     );
 
-    // 获取数据（保留 uploaded_by ID 和 uploadedByUsername）
-    let files = await db.all(
-      `SELECT 
-      f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
-      f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
-      f.download_count as downloadCount, f.created_at as createdAt,
-      f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.name as patientName
-       FROM files f
-       LEFT JOIN users u ON f.uploaded_by = u.id
-       LEFT JOIN patients p ON f.patient_id = p.id
-       ${whereClause}
-       ORDER BY f.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+    let files;
+    const isVisitor = currentUser && (currentUser.userPermission === '访客' || currentUser.user_permission === '访客');
+    if (isVisitor)
+      files = await db.all(
+        `SELECT
+        f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
+        f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
+        f.download_count as downloadCount, f.created_at as createdAt,
+        f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.name as patientName,
+        EXISTS (
+          SELECT 1
+          FROM file_download_authorizations fda
+          WHERE fda.user_id = 2
+            AND fda.file_id = f.id
+            AND fda.status = 'active'
+            AND TO_TIMESTAMP(fda.expires_at) > CURRENT_TIMESTAMP
+        ) AS hasPermission
+        FROM files f
+        LEFT JOIN users u ON f.uploaded_by = u.id
+        LEFT JOIN patients p ON f.patient_id = p.id
+        ${whereClause}
+        ORDER BY f.created_at DESC
+        LIMIT ? OFFSET ?`,
+        [...params, limit, offset]
+      );
+    else
+      files = await db.all(
+        `SELECT 
+        f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
+        f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
+        f.download_count as downloadCount, f.created_at as createdAt,
+        f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.name as patientName
+          FROM files f
+          LEFT JOIN users u ON f.uploaded_by = u.id
+          LEFT JOIN patients p ON f.patient_id = p.id
+          ${whereClause}
+          ORDER BY f.created_at DESC
+          LIMIT ? OFFSET ?`,
+        [...params, limit, offset]
+      );
+    if (!isVisitor) {
+      files = files.map((f) => ({ ...f, hasPermission: true }));
+    }
 
     // 规范化 BigInt，并解析 metadata JSON
     files = files.map((file) => {
@@ -224,42 +256,6 @@ class FileService {
       }
       return normalized;
     });
-
-    // 添加 hasPermission 字段：非访客默认有权限；访客需检查授权表
-    try {
-      const isVisitor = currentUser && (currentUser.userPermission === '访客' || currentUser.user_permission === '访客');
-      if (!isVisitor) {
-        files = files.map((f) => ({ ...f, hasPermission: true }));
-      } else {
-        // 批量查询该用户对这些文件的授权情况
-        const fileIds = files.map((f) => f.id).filter((id) => id !== undefined && id !== null);
-        if (fileIds.length === 0) {
-          files = files.map((f) => ({ ...f, hasPermission: false }));
-        } else {
-          const placeholders = fileIds.map(() => '?').join(',');
-          const params = [Number(currentUser.id), ...fileIds];
-          // 注意：使用 db.all 查询每个 file_id 的最新授权是否有效
-          const rows = await db.all(
-            `SELECT file_id, (expires_at > CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT)) as is_valid
-             FROM file_download_authorizations
-             WHERE user_id = ? AND file_id IN (${placeholders})`,
-            params
-          );
-
-          const authMap = new Map();
-          for (const r of rows) {
-            // r.is_valid 可能为 1/0 或 true/false
-            authMap.set(r.file_id, r.is_valid === true || r.is_valid === 1);
-          }
-
-          files = files.map((f) => ({ ...f, hasPermission: Boolean(authMap.get(f.id)) }));
-        }
-      }
-    } catch (e) {
-      // 若权限检查出错，默认对所有文件设为 false（保守策略），并在控制台记录
-      console.error('检查文件列表权限时出错:', e);
-      files = files.map((f) => ({ ...f, hasPermission: false }));
-    }
 
     const totalNum = Number(countResult && countResult.total ? countResult.total : 0);
 
