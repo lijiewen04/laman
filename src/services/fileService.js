@@ -1,17 +1,17 @@
-import db from "../database/duckdb.js";
-import fs from "fs";
-import path from "path";
-import csv from "csv-parser";
-import xlsx from "xlsx";
-import { fileURLToPath } from "url";
-import userService from "./userService.js";
+import db from '../database/duckdb.js';
+import fs from 'fs';
+import path from 'path';
+import csv from 'csv-parser';
+import xlsx from 'xlsx';
+import { fileURLToPath } from 'url';
+import userService from './userService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class FileService {
   constructor() {
-    this.uploadDir = path.join(__dirname, "../../uploads");
+    this.uploadDir = path.join(__dirname, '../../uploads');
     this.ensureUploadDir();
   }
 
@@ -30,15 +30,15 @@ class FileService {
       mimetype,
       size,
       path: filePath,
-      fileType = "其他",
-      description = "",
+      fileType = '其他',
+      description = '',
       metadata = {},
       patientId,
     } = fileData;
 
     // patientId 必填
     if (patientId === undefined || patientId === null || isNaN(Number(patientId))) {
-      throw new Error("需要提供有效的 patientId");
+      throw new Error('需要提供有效的 patientId');
     }
 
     const inserted = await db.get(
@@ -64,19 +64,19 @@ class FileService {
 
   // 把行对象中的 BigInt 转为 Number（递归一层）
   normalizeRow(row) {
-    if (!row || typeof row !== "object") return row;
+    if (!row || typeof row !== 'object') return row;
     const out = Array.isArray(row) ? [] : {};
     for (const key of Object.keys(row)) {
       const v = row[key];
-      if (typeof v === "bigint") {
+      if (typeof v === 'bigint') {
         out[key] = Number(v);
-      } else if (v && typeof v === "object" && !Array.isArray(v)) {
+      } else if (v && typeof v === 'object' && !Array.isArray(v)) {
         // DuckDB 的 TIMESTAMP 可能会被驱动封装为对象，例如 { micros: BigInt } 或 { micros: number }
         // 把这样的 timestamp 转为 ISO 字符串，便于前端使用和 JSON 序列化
-        if (Object.prototype.hasOwnProperty.call(v, "micros")) {
+        if (Object.prototype.hasOwnProperty.call(v, 'micros')) {
           try {
             const micros = v.microseconds !== undefined ? v.microseconds : v.micros;
-            const ms = typeof micros === "bigint" ? Number(micros) / 1000 : Number(micros) / 1000;
+            const ms = typeof micros === 'bigint' ? Number(micros) / 1000 : Number(micros) / 1000;
             const d = new Date(ms);
             out[key] = d.toISOString();
           } catch (e) {
@@ -122,7 +122,7 @@ class FileService {
 
   // 获取文件列表
   async getFiles(filter = {}, page = 1, limit = 20) {
-    let whereClause = "WHERE f.is_deleted = false";
+    let whereClause = 'WHERE f.is_deleted = false';
     const params = [];
 
     // 构建筛选条件
@@ -218,11 +218,11 @@ class FileService {
     files = files.map((file) => {
       const normalized = this.normalizeRow(file);
       if (normalized.metadata) {
-      try {
-        normalized.metadata = JSON.parse(normalized.metadata);
-      } catch (e) {
-        // keep as string
-      }
+        try {
+          normalized.metadata = JSON.parse(normalized.metadata);
+        } catch (e) {
+          // keep as string
+        }
       }
       return normalized;
     });
@@ -240,26 +240,18 @@ class FileService {
 
   // 增加下载次数
   async incrementDownloadCount(id) {
-    await db.run(
-      "UPDATE files SET download_count = download_count + 1 WHERE id = ?",
-      [id]
-    );
+    await db.run('UPDATE files SET download_count = download_count + 1 WHERE id = ?', [id]);
   }
 
   // 删除文件（软删除）
   async deleteFile(id) {
-    const result = await db.run(
-      "UPDATE files SET is_deleted = true WHERE id = ?",
-      [id]
-    );
+    const result = await db.run('UPDATE files SET is_deleted = true WHERE id = ?', [id]);
     return result.changes > 0;
   }
 
   // 获取文件类型列表
   async getFileTypes() {
-    const types = await db.all(
-      "SELECT DISTINCT file_type FROM files WHERE is_deleted = false ORDER BY file_type"
-    );
+    const types = await db.all('SELECT DISTINCT file_type FROM files WHERE is_deleted = false ORDER BY file_type');
     return types.map((type) => type.file_type);
   }
 
@@ -269,9 +261,9 @@ class FileService {
       const results = [];
       fs.createReadStream(filePath)
         .pipe(csv())
-        .on("data", (data) => results.push(data))
-        .on("end", () => resolve(results))
-        .on("error", (error) => reject(error));
+        .on('data', (data) => results.push(data))
+        .on('end', () => resolve(results))
+        .on('error', (error) => reject(error));
     });
   }
 
@@ -279,13 +271,13 @@ class FileService {
   async updateFileMetadata(fileId, newMetadata = {}) {
     const file = await this.getFileById(fileId);
     if (!file) {
-      throw new Error("文件不存在");
+      throw new Error('文件不存在');
     }
 
     let existing = {};
-    if (file.metadata && typeof file.metadata === "object") {
+    if (file.metadata && typeof file.metadata === 'object') {
       existing = file.metadata;
-    } else if (file.metadata && typeof file.metadata === "string") {
+    } else if (file.metadata && typeof file.metadata === 'string') {
       try {
         existing = JSON.parse(file.metadata);
       } catch (e) {
@@ -295,17 +287,14 @@ class FileService {
 
     const merged = { ...existing, ...newMetadata };
 
-    await db.run(
-      `UPDATE files SET metadata = ? WHERE id = ?`,
-      [JSON.stringify(merged), fileId]
-    );
+    await db.run(`UPDATE files SET metadata = ? WHERE id = ?`, [JSON.stringify(merged), fileId]);
 
     return merged;
   }
 
   // 把标识符（表名）安全化，仅保留字母数字和下划线
   safeIdentifier(name) {
-    return String(name).replace(/[^a-zA-Z0-9_]/g, "_");
+    return String(name).replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
   // 解析 Excel 文件
@@ -329,35 +318,35 @@ class FileService {
   async getFilePreview(fileId, limit = 10) {
     const fileRecord = await this.getFileById(fileId);
     if (!fileRecord) {
-      throw new Error("文件不存在");
+      throw new Error('文件不存在');
     }
     const filePath = fileRecord.filePath;
     const fileType = fileRecord.fileType;
 
     try {
-      if (fileType === "CSV") {
-          // 直接从文件系统读取 CSV，不再使用 DuckDB
-          const allData = await this.parseCSV(filePath);
-          return {
-            preview: allData.slice(0, limit),
-            totalRows: allData.length,
-            fileType: "CSV",
-            source: "filesystem",
-          };
-        } else if (fileType === "Excel") {
+      if (fileType === 'CSV') {
+        // 直接从文件系统读取 CSV，不再使用 DuckDB
+        const allData = await this.parseCSV(filePath);
+        return {
+          preview: allData.slice(0, limit),
+          totalRows: allData.length,
+          fileType: 'CSV',
+          source: 'filesystem',
+        };
+      } else if (fileType === 'Excel') {
         const allData = await this.parseExcel(filePath);
         const firstSheet = Object.keys(allData)[0];
         return {
           preview: allData[firstSheet].slice(0, limit),
           totalRows: allData[firstSheet].length,
-          fileType: "Excel",
+          fileType: 'Excel',
           sheetName: firstSheet,
           totalSheets: Object.keys(allData).length,
         };
       } else {
         return {
           preview: null,
-          message: "该文件类型不支持预览",
+          message: '该文件类型不支持预览',
         };
       }
     } catch (error) {
@@ -371,25 +360,25 @@ class FileService {
   canUserDownload(userPermission) {
     // 超级管理员和管理员可以直接下载
     // 新增角色 "用户"，该角色位于访客和管理员之间，具备直接下载权限
-    return ["超级管理员", "管理员", "用户"].includes(userPermission);
+    return ['超级管理员', '管理员', '用户'].includes(userPermission);
   }
 
   // 为访客授权下载：仅接受 userId（数字）作为目标用户标识
   async authorizeDownload(fileId, userId, expiresIn = 24) {
     if (userId === undefined || userId === null || isNaN(Number(userId))) {
-      throw new Error("需要提供有效的 userId");
+      throw new Error('需要提供有效的 userId');
     }
 
     const id = Number(userId);
     const user = await userService.getUserById(id);
 
     if (!user) {
-      throw new Error("用户不存在");
+      throw new Error('用户不存在');
     }
 
     const perm = user.user_permission !== undefined ? user.user_permission : user.userPermission;
-    if (perm !== "访客") {
-      throw new Error("只能为访客用户授权下载");
+    if (perm !== '访客') {
+      throw new Error('只能为访客用户授权下载');
     }
 
     // 计算过期时间（Date 对象，用于返回给客户端的 ISO 字符串）
@@ -400,7 +389,7 @@ class FileService {
     // 导致比较 CURRENT_TIMESTAMP 失败（表现为短期授权立即过期）。
     // 为了兼容，存储到数据库的 expires_at 使用本地时间的不带时区格式：
     // "YYYY-MM-DD HH:MM:SS"，以便 CAST(expires_at AS TIMESTAMP) 与 CURRENT_TIMESTAMP 正常比较。
-    const pad = (n) => String(n).padStart(2, "0");
+    const pad = (n) => String(n).padStart(2, '0');
     const localY = expiresAt.getFullYear();
     const localM = pad(expiresAt.getMonth() + 1);
     const localD = pad(expiresAt.getDate());
@@ -436,7 +425,7 @@ class FileService {
           username: user.username,
           fileId: fileId,
           expiresAt: expiresAt.toISOString(),
-          note: updateRes.changes > 0 ? "授权已存在，已更新过期时间" : "授权已存在但未更新",
+          note: updateRes.changes > 0 ? '授权已存在，已更新过期时间' : '授权已存在但未更新',
         };
       }
 
@@ -458,7 +447,7 @@ class FileService {
 
       // 未找到任何授权记录
       if (!authorization) {
-        return { authorized: false, reason: "未授权" };
+        return { authorized: false, reason: '未授权' };
       }
 
       // 根据数据库返回的 is_valid 值判断是否仍然有效
@@ -467,34 +456,34 @@ class FileService {
       }
 
       // 找到了授权记录但已过期
-      return { authorized: false, reason: "授权已过期" };
+      return { authorized: false, reason: '授权已过期' };
     } catch (err) {
-      console.error("检查下载授权时出错:", err);
+      console.error('检查下载授权时出错:', err);
       // 出错时返回结构化结果，便于上层区分原因并展示友好提示
-      return { authorized: false, reason: "检查授权失败" };
+      return { authorized: false, reason: '检查授权失败' };
     }
   }
 
   // 访客提交下载申请
-  async createDownloadRequest(fileId, userId, message = "") {
+  async createDownloadRequest(fileId, userId, message = '') {
     // 基本校验
-    if (!fileId) throw new Error("文件ID不能为空");
-    if (!userId) throw new Error("用户ID不能为空");
+    if (!fileId) throw new Error('文件ID不能为空');
+    if (!userId) throw new Error('用户ID不能为空');
 
     const file = await this.getFileById(fileId);
     if (!file) {
-      throw new Error("文件不存在");
+      throw new Error('文件不存在');
     }
 
     const user = await userService.getUserById(Number(userId));
     if (!user) {
-      throw new Error("用户不存在");
+      throw new Error('用户不存在');
     }
 
     const perm = user.user_permission !== undefined ? user.user_permission : user.userPermission;
-    if (perm !== "访客") {
+    if (perm !== '访客') {
       // 非访客无需提交申请
-      return { success: false, reason: "not_needed" };
+      return { success: false, reason: 'not_needed' };
     }
 
     // 检查是否已有未处理的申请
@@ -504,17 +493,17 @@ class FileService {
     );
 
     if (existing) {
-      return { success: false, reason: "already_pending", requestId: existing.id };
+      return { success: false, reason: 'already_pending', requestId: existing.id };
     }
 
     // 插入申请记录，返回插入 id
     const inserted = await db.get(
       `INSERT INTO download_requests (file_id, user_id, username, message, status) VALUES (?, ?, ?, ?, 'pending') RETURNING id, created_at`,
-      [fileId, user.id, user.username, message || ""]
+      [fileId, user.id, user.username, message || '']
     );
 
     if (!inserted || !inserted.id) {
-      return { success: false, reason: "insert_failed" };
+      return { success: false, reason: 'insert_failed' };
     }
 
     // 返回申请信息
@@ -529,8 +518,8 @@ class FileService {
   // 管理员处理访客的下载申请：批准或拒绝
   // action: 'approve' | 'reject'
   async processDownloadRequest(requestId, action, adminUserId, expiresIn = 24) {
-    if (!requestId) throw new Error("请求ID不能为空");
-    if (!action || (action !== "approve" && action !== "reject")) throw new Error("无效的 action");
+    if (!requestId) throw new Error('请求ID不能为空');
+    if (!action || (action !== 'approve' && action !== 'reject')) throw new Error('无效的 action');
 
     const reqRecord = await db.get(
       `SELECT id, file_id as fileId, user_id as userId, username, message, status FROM download_requests WHERE id = ?`,
@@ -538,16 +527,16 @@ class FileService {
     );
 
     if (!reqRecord) {
-      throw new Error("请求不存在");
+      throw new Error('请求不存在');
     }
 
-    if (reqRecord.status !== "pending") {
-      return { success: false, reason: "already_processed", status: reqRecord.status };
+    if (reqRecord.status !== 'pending') {
+      return { success: false, reason: 'already_processed', status: reqRecord.status };
     }
 
-    if (action === "reject") {
+    if (action === 'reject') {
       await db.run(`UPDATE download_requests SET status = 'rejected' WHERE id = ?`, [requestId]);
-      return { success: true, action: "rejected" };
+      return { success: true, action: 'rejected' };
     }
 
     // 批准：创建或更新授权记录（并设置 authorization.status = 'active'）
@@ -559,22 +548,22 @@ class FileService {
 
     // 如果 file_download_authorizations 表有 status 字段，则确保其为 'active'
     try {
-      await db.run(
-        `UPDATE file_download_authorizations SET status = 'active' WHERE file_id = ? AND user_id = ?`,
-        [reqRecord.fileId, reqRecord.userId]
-      );
+      await db.run(`UPDATE file_download_authorizations SET status = 'active' WHERE file_id = ? AND user_id = ?`, [
+        reqRecord.fileId,
+        reqRecord.userId,
+      ]);
     } catch (e) {
       // 忽略更新失败，让上层逻辑继续；主要是为了兼容不同 DB 状态
-      console.error("更新授权状态失败:", e);
+      console.error('更新授权状态失败:', e);
     }
 
-    return { success: true, action: "approved", authorization: authResult };
+    return { success: true, action: 'approved', authorization: authResult };
   }
 
   // 超级管理员获取下载申请列表（支持简单分页和按状态/文件筛选）
   async getDownloadRequests(filter = {}, page = 1, limit = 20) {
     // 支持按状态、fileId、userId、patientName、patientGroup 过滤
-    let where = "WHERE 1=1";
+    let where = 'WHERE 1=1';
     const params = [];
 
     if (filter.status) {
@@ -615,14 +604,15 @@ class FileService {
 
     const rows = await db.all(
       `SELECT dr.id, dr.file_id as fileId, dr.user_id as userId, dr.username, dr.message, dr.status, dr.created_at as createdAt,
-              f.original_name as originalName, f.filename as filename,
-              p.id as patientId, p.serialNo as patientSerialNo, p.name as patientName, p."group" as patientGroup
-       FROM download_requests dr
-       LEFT JOIN files f ON dr.file_id = f.id
-       LEFT JOIN patients p ON f.patient_id = p.id
-       ${where}
-       ORDER BY dr.created_at DESC
-       LIMIT ? OFFSET ?`,
+          f.original_name as originalName, f.filename as filename,
+          p.id as patientId, p.serialNo as patientSerialNo, p.name as patientName, p."group" as patientGroup,
+          (SELECT expires_at FROM file_download_authorizations fda WHERE fda.file_id = f.id AND fda.user_id = dr.user_id ORDER BY fda.id DESC LIMIT 1) as expiresAt
+      FROM download_requests dr
+      LEFT JOIN files f ON dr.file_id = f.id
+      LEFT JOIN patients p ON f.patient_id = p.id
+      ${where}
+      ORDER BY dr.created_at DESC
+      LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
 
