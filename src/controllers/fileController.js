@@ -400,7 +400,21 @@ export const requestDownload = async (req, res) => {
     }
 
     if (result.reason === 'already_pending') {
-      return res.json(createResponse(4007, '已有未处理的下载申请'));
+      return res.json(createResponse(4007, '已有下载申请'));
+    }
+
+    if (result.reason === 'already_approved') {
+      return res.json(createResponse(4007, '申请已经批准'));
+    }
+
+    if (result.reason === 'recently_rejected') {
+      // result.retryAfterSeconds 可能由 service 返回（秒数）
+      const secs = Number(result.retryAfterSeconds || 0);
+      const hours = Math.floor(secs / 3600);
+      const minutes = Math.ceil((secs % 3600) / 60);
+      const hh = String(hours).padStart(2, '0');
+      const mm = String(minutes).padStart(2, '0');
+      return res.json(createResponse(4007, `申请被拒绝，请${hh}时${mm}分后重试`));
     }
 
     return res.json(createResponse(5001, '提交申请失败'));

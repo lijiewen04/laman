@@ -473,14 +473,53 @@ class FileService {
       return { success: false, reason: 'not_needed' };
     }
 
-    // 检查是否已有未处理的申请
-    const existing = await db.get(
-      `SELECT id, status, created_at FROM download_requests WHERE file_id = ? AND user_id = ? AND status = 'pending'`,
+    // 检查是否已有历史申请（按时间倒序取最新一条）
+    const lastRecord = await db.get(
+      `SELECT id, status, created_at FROM download_requests WHERE file_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1`,
       [fileId, user.id]
     );
 
-    if (existing) {
-      return { success: false, reason: 'already_pending', requestId: existing.id };
+    if (lastRecord) {
+      const status = lastRecord.status;
+
+      if (status === 'pending') {
+        return { success: false, reason: 'already_pending', requestId: lastRecord.id };
+      }
+
+      if (status === 'approved') {
+        return { success: false, reason: 'already_approved', requestId: lastRecord.id };
+      }
+
+      if (status === 'rejected') {
+        // 计算距离上次拒绝时间是否小于 24 小时
+        let createdAtMs = null;
+        try {
+          const ca = lastRecord.created_at;
+          if (typeof ca === 'number') {
+            // 如果看起来像毫秒（> 1e12），直接使用；否则按秒处理
+            createdAtMs = ca > 1e12 ? ca : ca * 1000;
+          } else {
+            const d = new Date(ca);
+            createdAtMs = isNaN(d.getTime()) ? null : d.getTime();
+          }
+        } catch (e) {
+          createdAtMs = null;
+        }
+
+        if (createdAtMs) {
+          const diffSeconds = (Date.now() - createdAtMs) / 1000;
+          const oneDay = 24 * 3600;
+          if (diffSeconds < oneDay) {
+            return {
+              success: false,
+              reason: 'recently_rejected',
+              retryAfterSeconds: Math.ceil(oneDay - diffSeconds),
+              requestId: lastRecord.id,
+            };
+          }
+        }
+        // 若拒绝已经超过 24 小时，则允许再次提交（继续执行）
+      }
     }
 
     // 插入申请记录，返回插入 id
@@ -517,8 +556,23 @@ class FileService {
       throw new Error('请求不存在');
     }
 
-    if (reqRecord.status !== 'pending') {
-      return { success: false, reason: 'already_processed', status: reqRecord.status };
+    // 新逻辑：
+    // - 管理员可以批准 pending 或 rejected 的请求（即对已拒绝请求再次批准）
+    // - 管理员不能拒绝已经被批准的请求（维持现状）
+    // - 对于其他不允许的状态，保持已处理提示
+    if (action === 'approve') {
+      if (reqRecord.status === 'approved') {
+        return { success: false, reason: 'already_approved', status: reqRecord.status };
+      }
+      // 允许 approve 对 pending 或 rejected
+    } else if (action === 'reject') {
+      if (reqRecord.status === 'approved') {
+        return { success: false, reason: 'cannot_reject_approved', status: reqRecord.status };
+      }
+      if (reqRecord.status !== 'pending' && reqRecord.status !== 'rejected') {
+        return { success: false, reason: 'already_processed', status: reqRecord.status };
+      }
+      // 允许 reject 对 pending 或 rejected（对已拒绝再次拒绝可当作已处理）
     }
 
     if (action === 'reject') {
