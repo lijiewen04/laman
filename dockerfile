@@ -1,4 +1,4 @@
-FROM node:22.21.1-alpine3.21
+FROM node:22-bullseye
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm
