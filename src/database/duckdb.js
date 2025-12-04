@@ -3,6 +3,7 @@ import fs from "fs";
 import { DuckDBInstance } from "@duckdb/node-api";
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { generateStrongPassword } from "../controllers/authController";
 
 // 使用 @duckdb/node-api 创建实例并连接
 
@@ -164,7 +165,7 @@ class Database {
         const cnt = cntRow && cntRow.cnt !== undefined ? (typeof cntRow.cnt === 'bigint' ? Number(cntRow.cnt) : cntRow.cnt) : 0;
         if (!cnt) {
           const defaultUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
-          const plainPassword = crypto.randomBytes(8).toString('hex');
+          const plainPassword = generateStrongPassword(30);
           const hashed = await bcrypt.hash(plainPassword, 12);
           try {
             await this.run(

@@ -10,6 +10,17 @@ const generateToken = (id) => {
   });
 };
 
+// 生成强密码
+export function generateStrongPassword(length = 30) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?';
+  const bytes = crypto.randomBytes(length);
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
+}
+
 // 管理员创建用户（仅超级管理员可调用）
 export const createUserByAdmin = async (req, res) => {
   try {
@@ -21,11 +32,11 @@ export const createUserByAdmin = async (req, res) => {
       return res.json(createResponse(4002, "权限类型无效"));
     }
 
-    // 如果密码未提供，生成一个安全随机密码并返回给管理员
-    let generatedPassword = password;
-    if (!generatedPassword) {
-      generatedPassword = crypto.randomBytes(6).toString("hex"); // 12 chars
-    }
+      // 如果密码未提供，生成一个强密码并返回给管理员
+      let generatedPassword = password;
+      if (!generatedPassword) {
+        generatedPassword = generateStrongPassword(30);
+      }
 
     const user = await userService.createUser({
       username,
@@ -80,7 +91,7 @@ export const adminResetPassword = async (req, res) => {
     const user = await userService.getUserById(id);
     if (!user) return res.json(createResponse(4003, "用户不存在"));
 
-    const newPassword = crypto.randomBytes(6).toString("hex");
+    const newPassword = generateStrongPassword(30);
     await userService.setPasswordById(id, newPassword);
 
     // 返回新密码给管理员（只在管理操作时返回）
