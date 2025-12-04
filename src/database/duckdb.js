@@ -168,8 +168,8 @@ class Database {
           const hashed = await bcrypt.hash(plainPassword, 12);
           try {
             await this.run(
-              `INSERT INTO users (username, password, user_permission, is_active) VALUES (?, ?, ?, ?)`,
-              [defaultUsername, hashed, '超级管理员', true]
+              `INSERT INTO users (username, password, department, user_permission, is_active) VALUES (?, ?, ?, ?, ?)`,
+              [defaultUsername, hashed, '管理部门', '超级管理员', true]
             );
             console.log(`默认超级管理员已创建，用户名: ${defaultUsername}, 密码: ${plainPassword}`);
           } catch (e) {
