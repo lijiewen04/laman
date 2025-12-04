@@ -12,14 +12,37 @@ class UserService {
       phone,
     } = userData;
 
-    // 密码加密
-    const hashedPassword = await bcrypt.hash(password, 12);
+    if (!username || typeof username !== "string" || username.trim() === "") {
+      const e = new Error("用户名不能为空");
+      e.clientCode = 4001;
+      throw e;
+    }
 
-    // 使用 RETURNING 获取插入的 id（DuckDB 支持 RETURNING）
+    if (!password || typeof password !== "string" || password.trim() === "") {
+      const e = new Error("密码不能为空");
+      e.clientCode = 4004; // 自定义错误码：密码不能为空
+      throw e;
+    }
+
+    const allowedPermissions = ["超级管理员", "管理员", "用户", "访客"];
+    if (!allowedPermissions.includes(userPermission)) {
+      const e = new Error("权限类型无效");
+      e.clientCode = 4002;
+      throw e;
+    }
+
+    const uname = String(username);
+    const pwd = String(password);
+    const perm = String(userPermission);
+    const dept = department === undefined ? null : (department === null ? null : String(department));
+    const ph = phone === undefined ? null : (phone === null ? null : String(phone));
+
+    const hashedPassword = await bcrypt.hash(pwd, 12);
+
     const inserted = await db.get(
       `INSERT INTO users (username, password, user_permission, department, phone)
        VALUES (?, ?, ?, ?, ?) RETURNING id`,
-      [username, hashedPassword, userPermission, department, phone]
+      [uname, hashedPassword, perm, dept, ph]
     );
 
     const user = await this.getUserById(inserted.id);

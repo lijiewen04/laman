@@ -49,6 +49,9 @@ export const createUserByAdmin = async (req, res) => {
     res.json(createResponse(0, "用户创建成功", { user: { id: user.id, username: user.username, userPermission: user.userPermission, department: user.department, phone: user.phone }, password: generatedPassword }));
   } catch (error) {
     console.error("管理员创建用户错误:", error);
+    if (error && error.clientCode) {
+      return res.json(createResponse(error.clientCode, error.message || "参数错误"));
+    }
     res.json(createResponse(5001, "服务器错误"));
   }
 };
