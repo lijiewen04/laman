@@ -3,7 +3,17 @@ import fs from "fs";
 import { DuckDBInstance } from "@duckdb/node-api";
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { generateStrongPassword } from "../controllers/authController";
+
+// 生成强密码
+export function generateStrongPassword(length = 30) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?';
+  const bytes = crypto.randomBytes(length);
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
+}
 
 // 使用 @duckdb/node-api 创建实例并连接
 
