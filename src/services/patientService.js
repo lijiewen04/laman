@@ -49,7 +49,7 @@ class PatientService {
       [
         abbr,
         time,
-        name,
+        abbr, // 指导老师啊到最后啊临时提需求啊不准用真名啊
         serialNo,
         inpatientOutpatient,
         group,
@@ -77,7 +77,7 @@ class PatientService {
   async getPatientById(id) {
     return await db.get(
       `SELECT 
-        id, abbr, time, name, serialNo, inpatientOutpatient, "group",
+        id, abbr, time, abbr AS name, serialNo, inpatientOutpatient, "group",
         gender, age, caseNo, diagnosis, isTested, tStage, nStage, mStage, stage,
         preTreatment, treatmentType, memo
        FROM patients WHERE id = ?`,
@@ -89,7 +89,7 @@ class PatientService {
   async getPatientBySerialNo(serialNo) {
     return await db.get(
       `SELECT 
-        id, abbr, time, name, serialNo, inpatientOutpatient, "group",
+        id, abbr, time, abbr AS name, serialNo, inpatientOutpatient, "group",
         gender, age, caseNo, diagnosis, isTested, tStage, nStage, mStage, stage,
         preTreatment, treatmentType, memo
        FROM patients WHERE serialNo = ?`,
@@ -105,7 +105,8 @@ class PatientService {
 
     // 构建筛选条件
     if (filter.name) {
-      whereClause += ` AND name LIKE ?`;
+      // 前端搜索 name 时实际按 abbr 搜索（name 已被重映射为 abbr）
+      whereClause += ` AND abbr LIKE ?`;
       params.push(`%${filter.name}%`);
       paramIndex++;
     }
@@ -244,7 +245,7 @@ class PatientService {
     // 获取数据
     const patients = await db.all(
       `SELECT 
-        id, abbr, time, name, serialNo, inpatientOutpatient, "group",
+        id, abbr, time, abbr AS name, serialNo, inpatientOutpatient, "group",
         gender, age, caseNo, diagnosis, isTested, tStage, nStage, mStage, stage,
         preTreatment, treatmentType, memo
        FROM patients 

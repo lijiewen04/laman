@@ -102,7 +102,7 @@ class FileService {
         f.size, f.file_path as filePath, f.file_type as fileType, f.description, 
         f.metadata, f.uploaded_by as uploadedBy, f.patient_id as patientId,
         f.download_count as downloadCount, f.created_at as createdAt,
-        u.username as uploadedByUsername, p.name as patientName
+        u.username as uploadedByUsername, p.abbr as patientName, p.caseNo as patientCaseNo, p.diagnosis as patientDiagnosis, p.abbr as patientAbbr, p.gender as patientGender, p.age as patientAge
        FROM files f
        LEFT JOIN users u ON f.uploaded_by = u.id
        LEFT JOIN patients p ON f.patient_id = p.id
@@ -208,7 +208,7 @@ class FileService {
         f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
         f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
         f.download_count as downloadCount, f.created_at as createdAt,
-        f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.name as patientName,
+        f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.abbr as patientName, p.caseNo as patientCaseNo, p.diagnosis as patientDiagnosis, p.abbr as patientAbbr, p.gender as patientGender, p.age as patientAge,
         EXISTS (
           SELECT 1
           FROM file_download_authorizations fda
@@ -231,7 +231,7 @@ class FileService {
         f.id, f.filename, f.original_name as originalName, f.mime_type as mimeType,
         f.size, f.file_path as filePath, f.file_type as fileType, f.description, f.metadata,
         f.download_count as downloadCount, f.created_at as createdAt,
-        f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.name as patientName
+        f.uploaded_by as uploadedBy, f.patient_id as patientId, u.username as uploadedByUsername, p.abbr as patientName, p.caseNo as patientCaseNo, p.diagnosis as patientDiagnosis, p.abbr as patientAbbr, p.gender as patientGender, p.age as patientAge
           FROM files f
           LEFT JOIN users u ON f.uploaded_by = u.id
           LEFT JOIN patients p ON f.patient_id = p.id
@@ -655,7 +655,8 @@ class FileService {
     }
 
     if (filter.patientName) {
-      where += ` AND p.name LIKE ?`;
+      // 前端传 patientName 时按 abbr 搜索（name 已被映射为 abbr）
+      where += ` AND p.abbr LIKE ?`;
       params.push(`%${filter.patientName}%`);
     }
 
@@ -688,7 +689,7 @@ class FileService {
     const rows = await db.all(
       `SELECT dr.id, dr.file_id as fileId, dr.user_id as userId, dr.username, dr.message, dr.status, dr.created_at as createdAt,
           f.original_name as originalName, f.filename as filename,
-          p.id as patientId, p.serialNo as patientSerialNo, p.name as patientName, p."group" as patientGroup,
+          p.id as patientId, p.serialNo as patientSerialNo, p.abbr as patientName, p.caseNo as patientCaseNo, p.diagnosis as patientDiagnosis, p.abbr as patientAbbr, p.gender as patientGender, p.age as patientAge, p."group" as patientGroup,
           (SELECT expires_at FROM file_download_authorizations fda WHERE fda.file_id = f.id AND fda.user_id = dr.user_id ORDER BY fda.id DESC LIMIT 1) as expiresAt
       FROM download_requests dr
       LEFT JOIN files f ON dr.file_id = f.id
