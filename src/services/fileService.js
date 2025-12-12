@@ -148,6 +148,12 @@ class FileService {
       params.push(Number(filter.patientId));
     }
 
+    if (filter.patientDiagnosis) {
+      whereClause += ` AND p.diagnosis LIKE ?`;
+      console.log(filter.patientDiagnosis);
+      params.push(`%${filter.patientDiagnosis}%`);
+    }
+
     if (filter.filename) {
       whereClause += ` AND f.filename LIKE ?`;
       params.push(`%${filter.filename}%`);
@@ -201,7 +207,9 @@ class FileService {
     );
 
     let files;
-    const isVisitor = currentUser && (currentUser.userPermission === '访客' || currentUser.user_permission === '访客');
+    const isVisitor = currentUser
+      ? currentUser.userPermission === '访客' || currentUser.user_permission === '访客'
+      : true;
     if (isVisitor)
       files = await db.all(
         `SELECT
@@ -212,7 +220,7 @@ class FileService {
         EXISTS (
           SELECT 1
           FROM file_download_authorizations fda
-          WHERE fda.user_id = 2
+          WHERE fda.user_id = ?
             AND fda.file_id = f.id
             AND fda.status = 'active'
             AND TO_TIMESTAMP(fda.expires_at) > CURRENT_TIMESTAMP
@@ -223,7 +231,7 @@ class FileService {
         ${whereClause}
         ORDER BY f.id DESC
         LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
+        [currentUser.id, ...params, limit, offset]
       );
     else
       files = await db.all(
@@ -518,8 +526,18 @@ class FileService {
         return { success: false, reason: 'already_pending', requestId: lastRecord.id };
       }
 
-      if (status === 'approved' && lastRecord.expires_at > Math.floor(Date.now() / 1000)) {
-        return { success: false, reason: 'already_approved', requestId: lastRecord.id };
+      if (status === 'approved') {
+        const download_authorizations = await db.get(
+          `SELECT id, status, expires_at FROM file_download_authorizations WHERE file_id = ? AND user_id = ? ORDER BY expires_at DESC LIMIT 1`,
+          [fileId, user.id]
+        );
+        if (
+          download_authorizations &&
+          download_authorizations.status === 'active' &&
+          download_authorizations.expires_at > Math.floor(Date.now() / 1000)
+        ) {
+          return { success: false, reason: 'already_approved', requestId: lastRecord.id };
+        }
       }
 
       if (status === 'rejected') {

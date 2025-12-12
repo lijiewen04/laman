@@ -146,6 +146,7 @@ export const getFileList = async (req, res) => {
       uploadedBy,
       uploadedById,
       patientId,
+      patientDiagnosis,
       filename,
       originalName,
       mimeType,
@@ -161,6 +162,7 @@ export const getFileList = async (req, res) => {
     if (uploadedBy) filter.uploadedBy = uploadedBy;
     if (uploadedById !== undefined) filter.uploadedById = uploadedById;
     if (patientId !== undefined) filter.patientId = patientId;
+    if (patientDiagnosis) filter.patientDiagnosis = patientDiagnosis;
     if (filename) filter.filename = filename;
     if (originalName) filter.originalName = originalName;
     if (mimeType) filter.mimeType = mimeType;
@@ -404,7 +406,7 @@ export const requestDownload = async (req, res) => {
     }
 
     if (result.reason === 'already_approved') {
-      return res.json(createResponse(4007, '申请已经批准'));
+      return res.json(createResponse(4007, '申请已经批准，您可直接查看或下载'));
     }
 
     if (result.reason === 'recently_rejected') {
