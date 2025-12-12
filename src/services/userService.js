@@ -1,32 +1,26 @@
-import db from "../database/duckdb.js";
-import bcrypt from "bcryptjs";
+import db from '../database/duckdb.js';
+import bcrypt from 'bcryptjs';
 
 class UserService {
   // 创建用户
   async createUser(userData) {
-    const {
-      username,
-      password,
-      userPermission = "访客",
-      department,
-      phone,
-    } = userData;
+    const { username, password, userPermission = '访客', department, phone } = userData;
 
-    if (!username || typeof username !== "string" || username.trim() === "") {
-      const e = new Error("用户名不能为空");
+    if (!username || typeof username !== 'string' || username.trim() === '') {
+      const e = new Error('用户名不能为空');
       e.clientCode = 4001;
       throw e;
     }
 
-    if (!password || typeof password !== "string" || password.trim() === "") {
-      const e = new Error("密码不能为空");
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+      const e = new Error('密码不能为空');
       e.clientCode = 4004; // 自定义错误码：密码不能为空
       throw e;
     }
 
-    const allowedPermissions = ["超级管理员", "管理员", "用户", "访客"];
+    const allowedPermissions = ['超级管理员', '管理员', '用户', '访客'];
     if (!allowedPermissions.includes(userPermission)) {
-      const e = new Error("权限类型无效");
+      const e = new Error('权限类型无效');
       e.clientCode = 4002;
       throw e;
     }
@@ -34,8 +28,8 @@ class UserService {
     const uname = String(username);
     const pwd = String(password);
     const perm = String(userPermission);
-    const dept = department === undefined ? null : (department === null ? null : String(department));
-    const ph = phone === undefined ? null : (phone === null ? null : String(phone));
+    const dept = department === undefined ? null : department === null ? null : String(department);
+    const ph = phone === undefined ? null : phone === null ? null : String(phone);
 
     const hashedPassword = await bcrypt.hash(pwd, 12);
 
@@ -65,10 +59,7 @@ class UserService {
 
   // 检查用户名是否存在
   async checkUserExists(username) {
-    const existingUser = await db.get(
-      `SELECT id FROM users WHERE username = ?`,
-      [username]
-    );
+    const existingUser = await db.get(`SELECT id FROM users WHERE username = ?`, [username]);
     return existingUser !== null;
   }
 
@@ -84,7 +75,7 @@ class UserService {
   // 获取用户列表，支持筛选与分页（推荐使用）
   async getUsers(filter = {}, page = 1, limit = 20) {
     // 默认只返回激活用户；如果传入 filter.isActive 则使用其值
-    let whereClause = "WHERE 1=1";
+    let whereClause = 'WHERE 1=1';
     const params = [];
 
     if (filter.isActive === undefined) {
@@ -126,27 +117,36 @@ class UserService {
 
     const offset = (page - 1) * limit;
 
-    const countResult = await db.get(
-      `SELECT COUNT(*) as total FROM users ${whereClause}`,
-      params
-    );
-    const total = typeof countResult.total === "bigint" ? Number(countResult.total) : countResult.total;
+    const countResult = await db.get(`SELECT COUNT(*) as total FROM users ${whereClause}`, params);
+    const total = typeof countResult.total === 'bigint' ? Number(countResult.total) : countResult.total;
 
-    const users = await db.all(
-      `SELECT id, username, user_permission as userPermission, department, phone
+    let users;
+    if (limit == 1919114) {
+      users = await db.all(
+        `SELECT id, username, user_permission as userPermission, department, phone
+       FROM users
+       ${whereClause}
+       ORDER BY id DESC`,
+        params
+      );
+    } else {
+      users = await db.all(
+        `SELECT id, username, user_permission as userPermission, department, phone
        FROM users
        ${whereClause}
        ORDER BY id DESC
        LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+        [...params, limit, offset]
+      );
+    }
+    const totalPages = limit == 1919114 ? 1 : Math.ceil(total / limit);
 
     return {
       users,
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
     };
   }
 
@@ -159,19 +159,19 @@ class UserService {
     const params = [];
 
     if (username !== undefined) {
-      sets.push("username = ?");
+      sets.push('username = ?');
       params.push(username);
     }
     if (userPermission !== undefined) {
-      sets.push("user_permission = ?");
+      sets.push('user_permission = ?');
       params.push(userPermission);
     }
     if (department !== undefined) {
-      sets.push("department = ?");
+      sets.push('department = ?');
       params.push(department);
     }
     if (phone !== undefined) {
-      sets.push("phone = ?");
+      sets.push('phone = ?');
       params.push(phone);
     }
 
@@ -180,14 +180,16 @@ class UserService {
       return await this.getUserById(id);
     }
 
-    const sql = `UPDATE users SET ${sets.join(", ")}, updated_at = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) WHERE id = ?`;
+    const sql = `UPDATE users SET ${sets.join(
+      ', '
+    )}, updated_at = CAST(EXTRACT(epoch FROM CURRENT_TIMESTAMP) AS BIGINT) WHERE id = ?`;
     params.push(id);
 
     try {
-      console.log("Executing SQL:", sql, "params:", params);
+      console.log('Executing SQL:', sql, 'params:', params);
       await db.run(sql, params);
     } catch (err) {
-      console.error("updateUser SQL error:", err, "sql:", sql, "params:", params);
+      console.error('updateUser SQL error:', err, 'sql:', sql, 'params:', params);
       // 抛出带有更多上下文的错误，控制器会在开发环境中返回给客户端
       const e = new Error(`updateUser failed: ${err.message}`);
       e.stack = err.stack;
@@ -228,10 +230,7 @@ class UserService {
 
   // 删除用户（软删除）
   async deleteUser(id) {
-    const result = await db.run(
-      "UPDATE users SET is_active = false WHERE id = ?",
-      [id]
-    );
+    const result = await db.run('UPDATE users SET is_active = false WHERE id = ?', [id]);
     return result.changes > 0;
   }
 
@@ -251,15 +250,15 @@ class UserService {
 
     // files.uploaded_by
     const f = await db.get(`SELECT COUNT(*) as cnt FROM files WHERE uploaded_by = ?`, [id]);
-    refs.files = typeof f.cnt === 'bigint' ? Number(f.cnt) : (f.cnt || 0);
+    refs.files = typeof f.cnt === 'bigint' ? Number(f.cnt) : f.cnt || 0;
 
     // patients.createdBy
     const p = await db.get(`SELECT COUNT(*) as cnt FROM patients WHERE createdBy = ?`, [id]);
-    refs.patients = typeof p.cnt === 'bigint' ? Number(p.cnt) : (p.cnt || 0);
+    refs.patients = typeof p.cnt === 'bigint' ? Number(p.cnt) : p.cnt || 0;
 
     // file_download_authorizations.user_id
     const a = await db.get(`SELECT COUNT(*) as cnt FROM file_download_authorizations WHERE user_id = ?`, [id]);
-    refs.file_download_authorizations = typeof a.cnt === 'bigint' ? Number(a.cnt) : (a.cnt || 0);
+    refs.file_download_authorizations = typeof a.cnt === 'bigint' ? Number(a.cnt) : a.cnt || 0;
 
     return refs;
   }

@@ -243,8 +243,22 @@ class PatientService {
     const total = typeof countResult.total === "bigint" ? Number(countResult.total) : countResult.total;
 
     // 获取数据
-    const patients = await db.all(
-      `SELECT 
+    let patients;
+    if (limit == 1919114) {
+      // 当请求的 limit 超过阈值时，不使用 LIMIT，以便返回全部匹配行
+      patients = await db.all(
+        `SELECT 
+        id, abbr, time, abbr AS name, serialNo, inpatientOutpatient, "group",
+        gender, age, caseNo, diagnosis, isTested, tStage, nStage, mStage, stage,
+        preTreatment, treatmentType, memo
+       FROM patients 
+       ${whereClause}
+       ORDER BY id DESC`,
+        params
+      );
+    } else {
+      patients = await db.all(
+        `SELECT 
         id, abbr, time, abbr AS name, serialNo, inpatientOutpatient, "group",
         gender, age, caseNo, diagnosis, isTested, tStage, nStage, mStage, stage,
         preTreatment, treatmentType, memo
@@ -252,15 +266,18 @@ class PatientService {
        ${whereClause}
        ORDER BY id DESC
        LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+        [...params, limit, offset]
+      );
+    }
+
+    const totalPages = limit > 1919114 ? 1 : Math.ceil(total / limit);
 
     return {
       patients,
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
     };
   }
 
