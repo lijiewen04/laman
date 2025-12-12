@@ -45,11 +45,39 @@ class UserService {
 
   // 根据ID获取用户
   async getUserById(id) {
-    return await db.get(
-      `SELECT id, username, user_permission as userPermission, department, phone, is_active, created_at, updated_at 
-       FROM users WHERE id = ?`,
-      [id]
-    );
+    const sql = `SELECT id, username, user_permission as userPermission, department, phone, is_active, created_at, updated_at 
+       FROM users WHERE id = ?`;
+
+    // 输入校验与类型转换
+    const param = (() => {
+      if (id === undefined || id === null) return null;
+      if (typeof id === 'bigint') return Number(id);
+      const n = Number(id);
+      return Number.isNaN(n) ? null : n;
+    })();
+
+    if (param === null) {
+      const e = new Error('Invalid user id');
+      e.clientCode = 4005; // 自定义客户端错误码（可按需调整）
+      throw e;
+    }
+
+    try {
+      return await db.get(sql, [param]);
+    } catch (err) {
+      // 记录足够的上下文，便于定位问题（不要在生产泄露敏感信息）
+      console.error('getUserById SQL error:', {
+        message: err.message,
+        userId: id,
+        sql,
+        params: [param],
+        stack: err.stack?.split('\n')[0],
+      });
+      const e = new Error('Failed to execute prepared statement');
+      e.original = err;
+      e.userId = id;
+      throw e;
+    }
   }
 
   // 根据用户名获取用户（包含密码）
