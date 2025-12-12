@@ -46,7 +46,7 @@ export const protect = async (req, res, next) => {
       req.user = user;
       next();
     } catch (err) {
-      console.error('获取用户信息错误:', err);
+      console.error('获取用户信息错误:', err, "用户ID:", decoded.id);
       return res.json(createResponse(1004, '令牌无效'));
     }
   } catch (error) {
