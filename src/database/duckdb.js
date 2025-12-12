@@ -198,14 +198,45 @@ class Database {
   }
 
   async run(sql, params = []) {
-    const result = await this.connection.run(sql, params);
-    // 尽可能提供与旧 API 兼容的 changes 字段
-    const changes = result?.rowCount ?? result?.changes ?? 0;
-    return { ...result, changes };
+    const ts = Date.now();
+    try {
+      const result = await this.connection.run(sql, params);
+      // 尽可能提供与旧 API 兼容的 changes 字段
+      const changes = result?.rowCount ?? result?.changes ?? 0;
+      return { ...result, changes };
+    } catch (err) {
+      console.error('DuckDB run error', {
+        message: err && err.message,
+        stack: err && err.stack,
+        sql,
+        params,
+        dbPath: this.dbPath,
+        ts,
+        memory: process && process.memoryUsage && process.memoryUsage(),
+      });
+      // 重新抛出以便上层捕获
+      throw err;
+    }
   }
 
   async all(sql, params = []) {
-    const reader = await this.connection.runAndReadAll(sql, params);
+    const ts = Date.now();
+    let reader;
+    try {
+      reader = await this.connection.runAndReadAll(sql, params);
+    } catch (err) {
+      console.error('DuckDB runAndReadAll error', {
+        message: err && err.message,
+        stack: err && err.stack,
+        sql,
+        params,
+        dbPath: this.dbPath,
+        ts,
+        memory: process && process.memoryUsage && process.memoryUsage(),
+      });
+      throw err;
+    }
+
     // 返回行对象数组，并把 BigInt 转为 Number（避免 JSON 序列化时报错）
     const rows = reader.getRowObjects ? reader.getRowObjects() : reader.getRows ? reader.getRows() : [];
     // 将可能的 BigInt/Date/Timestamp-like 字段转换为秒级 Number（浅层转换）
