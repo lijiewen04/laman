@@ -49,6 +49,7 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    console.error("验证令牌错误:", error);
     return res.json(createResponse(1004, "令牌无效"));
   }
 };
